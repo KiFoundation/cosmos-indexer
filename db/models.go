@@ -78,6 +78,7 @@ type Message struct {
 	MessageTypeID uint `gorm:"foreignKey:MessageTypeID,index:idx_txid_typeid"`
 	MessageType   MessageType
 	MessageIndex  int
+	MessageValue  JSONB `gorm:"type:jsonb"`
 }
 
 const (
