@@ -33,12 +33,15 @@ services:
 
   indexer:
     restart: "no"
-    image: ghcr.io/defiantlabs/cosmos-indexer:pr-420
+    #image: ghcr.io/defiantlabs/cosmos-indexer:pr-420
+    build:
+      context: ./  # Path to the directory containing the Dockerfile ()
     user: defiant
     stop_grace_period: 10s
     volumes:
       # - indexer:/var/lib/cosmos-indexer-index
       - /etc/localtime:/etc/localtime:ro
+      - ./:/go/src/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,20 +57,18 @@ services:
     - -c
     - |
       cosmos-indexer index \
-      --log.pretty = true \
+      --log.pretty = false \
       --log.level = debug \
-      --base.index-chain = false \
-      --base.start-block 2723300 \
-      --base.end-block 2723464 \
-      --base.throttling 0.005 \
-      --base.rpc-workers 4 \
+      --base.start-block 10647117 \
+      --base.end-block 10647451 \
+      --base.throttling 0.1 \
       --base.reindex true \
       --base.prevent-reattempts true \
-      --base.api http://34.168.39.1:1317 \
-      --lens.rpc http://34.168.39.1:26657 \
-      --lens.account-prefix osmo \
-      --lens.chain-id osmosis-1 \
-      --lens.chain-name osmosis \
+      --base.api https://api-challenge.blockchain.ki \
+      --lens.rpc https://rpc-challenge.blockchain.ki \
+      --lens.account-prefix tki \
+      --lens.chain-id kichain-t-4 \
+      --lens.chain-name kid \
       --database.host postgres \
       --database.database postgres \
       --database.user taxuser \
