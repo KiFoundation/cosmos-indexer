@@ -1,4 +1,4 @@
-# Cosmos Indexer
+# Cosmos Indexer fork
 
 The Cosmos Indexer is an open-source application designed to index a Cosmos chain to a generalized DB schema. Its mission is to offer a flexible DB schema compatible with all Cosmos SDK Chains while simplifying the correlation of transactions with addresses and storing relevant data.
 
