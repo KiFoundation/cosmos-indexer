@@ -3,6 +3,7 @@ package core
 import (
 	b64 "encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -385,6 +386,16 @@ func AnalyzeSwaps() {
 	fmt.Printf("Profit (OSMO): %.10f, days: %f\n", profit, latestTime.Sub(earliestTime).Hours()/24)
 }
 
+// Testing if a string slice contains given val
+func contains(arr []string, val string) bool {
+	for _, item := range arr {
+		if item == val {
+			return true
+		}
+	}
+	return false
+}
+
 func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper, txTime time.Time, err error) {
 	txTime, err = time.Parse(time.RFC3339, tx.TxResponse.TimeStamp)
 	if err != nil {
@@ -407,6 +418,39 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 			var currMessageDBWrapper dbTypes.MessageDBWrapper
 			messageLog := txtypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
 			cosmosMessage, msgType, err := ParseCosmosMessage(message, *messageLog)
+
+			// Appending MsgValue to currMessage depending on the message type
+			excludedMsgTypes := []string{
+				//"/cosmwasm.wasm.v1.MsgExecuteContract",
+				//"/cosmos.authz.v1beta1.MsgExec",
+				"/ibc.core.client.v1.MsgUpdateClient",
+				//"/ibc.core.channel.v1.MsgRecvPacket",
+				//"/ibc.applications.transfer.v1.MsgTransfer",
+				//"/ibc.core.channel.v1.MsgAcknowledgement",
+			}
+
+			currMessage.MessageValue = nil
+			if !contains(excludedMsgTypes, msgType) {
+				jsonMsgValue, err := json.Marshal(tx.Tx.Body.Messages[messageIndex])
+				if err != nil {
+					fmt.Println("Error marshaling to JSON:", err)
+				}
+
+				// Create a map to hold the JSON data
+				var jsonbMsgValue interface{}
+
+				// Unmarshal the raw message into the map
+				err = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
+				if err != nil {
+					fmt.Println("Error:", err)
+				}
+
+				var jsonbMsgValueList dbTypes.JSONB
+				jsonbMsgValueList = append(jsonbMsgValueList, jsonbMsgValue)
+
+				currMessage.MessageValue = jsonbMsgValueList
+			}
+
 			if err != nil {
 				currMessageType.MessageType = msgType
 				currMessage.MessageType = currMessageType
