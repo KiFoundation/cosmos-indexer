@@ -439,6 +439,7 @@ CREATE TABLE public.messages (
     tx_id bigint,
     message_type_id bigint,
     message_index bigint
+    message_value jsonb
 );
 
 
