@@ -420,6 +420,7 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 			cosmosMessage, msgType, err := ParseCosmosMessage(message, *messageLog)
 
 			// Appending MsgValue to currMessage depending on the message type
+			// Some message types might not be supported for marshaling operations, exclude those here
 			excludedMsgTypes := []string{
 				//"/cosmwasm.wasm.v1.MsgExecuteContract",
 				//"/cosmos.authz.v1beta1.MsgExec",
@@ -433,7 +434,7 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 			if !contains(excludedMsgTypes, msgType) {
 				jsonMsgValue, err := json.Marshal(tx.Tx.Body.Messages[messageIndex])
 				if err != nil {
-					fmt.Println("Error marshaling to JSON:", err)
+					config.Log.Error("Error marshaling to JSON:", err)
 				}
 
 				// Create a map to hold the JSON data
@@ -442,7 +443,7 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				// Unmarshal the raw message into the map
 				err = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
 				if err != nil {
-					fmt.Println("Error:", err)
+					config.Log.Error("Error unmarshaling to JSONB:", err)
 				}
 
 				var jsonbMsgValueList dbTypes.JSONB
