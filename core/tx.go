@@ -198,8 +198,8 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 		// Checking if we should use the data parsed by the handler or the raw data
 		if contains(supportedMsgTypes, cosmosMessage.Type) {
 			// Fetching handler parsed data when there is an appropriate handler for the message type
-			jsonMsgValue, err := json.Marshal(msgHandler.ParseRelevantData())
-			if err != nil {
+			jsonMsgValue, marshalingError := json.Marshal(msgHandler.ParseRelevantData())
+			if marshalingError != nil {
 				config.Log.Error("Error marshaling to JSON:", err)
 			}
 
@@ -207,16 +207,16 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 			var jsonbMsgValue dbTypes.JSONB
 
 			// Unmarshal the raw message into the map
-			err = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
-			if err != nil {
+			marshalingError = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
+			if marshalingError != nil {
 				config.Log.Error("Error unmarshaling to JSONB:", err)
 			}
 
 			messageValue = jsonbMsgValue
 		} else {
 			// Parsing raw messages when no appropriate handler is available
-			jsonMsgValue, err := json.Marshal(message)
-			if err != nil {
+			jsonMsgValue, marshalingError := json.Marshal(message)
+			if marshalingError != nil {
 				config.Log.Error("Error marshaling to JSON:", err)
 			}
 
@@ -224,8 +224,8 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 			var jsonbMsgValue interface{}
 
 			// Unmarshal the raw message into the map
-			err = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
-			if err != nil {
+			marshalingError = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
+			if marshalingError != nil {
 				config.Log.Error("Error unmarshaling to JSONB:", err)
 			}
 
