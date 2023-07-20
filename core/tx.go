@@ -193,8 +193,9 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 		"/ibc.core.channel.v1.MsgAcknowledgement",
 	}
 
+	// Skipping message types that are not properly handled and can cause errors
 	if !contains(excludedMsgTypes, cosmosMessage.Type) {
-		// Checking if the message type is supported for parsing
+		// Checking if we should use the data parsed by the handler or the raw data
 		if contains(supportedMsgTypes, cosmosMessage.Type) {
 			// Fetching handler parsed data when there is an appropriate handler for the message type
 			jsonMsgValue, err := json.Marshal(msgHandler.ParseRelevantData())
@@ -234,10 +235,6 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 			messageValue = jsonbMsgValueList
 		}
 	}
-	// -------------------------------------------------------------------------------------------------
-	config.Log.Info(fmt.Sprintf("MESSAGE TYPE : %+v\n", cosmosMessage.Type))
-	config.Log.Info(fmt.Sprintf("MESSAGE RAW : %+v\n", messageValue...))
-	// -------------------------------------------------------------------------------------------------
 
 	return msgHandler, cosmosMessage.Type, err, messageValue
 }
