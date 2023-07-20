@@ -53,6 +53,7 @@ var messageTypeHandler = map[string][]func() txtypes.CosmosMessage{
 	staking.MsgBeginRedelegate:                  {func() txtypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} }},
 	ibc.MsgRecvPacket:                           {func() txtypes.CosmosMessage { return &ibc.WrapperMsgRecvPacket{} }},
 	ibc.MsgAcknowledgement:                      {func() txtypes.CosmosMessage { return &ibc.WrapperMsgAcknowledgement{} }},
+	ibc.MsgUpdateClient:                         {func() txtypes.CosmosMessage { return &ibc.WrapperMsgUpdateClient{} }},
 }
 
 // These messages are ignored for tax purposes.
@@ -70,8 +71,8 @@ var messageTypeIgnorer = map[string]interface{}{
 	// Voting is not taxable
 	gov.MsgVote: nil,
 	// The IBC msgs below do not create taxable events
-	ibc.MsgTransfer:              nil,
-	ibc.MsgUpdateClient:          nil,
+	ibc.MsgTransfer: nil,
+	//ibc.MsgUpdateClient:          nil,
 	ibc.MsgTimeout:               nil,
 	ibc.MsgTimeoutOnClose:        nil,
 	ibc.MsgCreateClient:          nil,
@@ -184,13 +185,14 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 	// Appending MsgValue to currMessage depending on the message type
 	// Some message types might not be supported for marshaling operations, exclude those here
 	excludedMsgTypes := []string{
-		"/ibc.core.client.v1.MsgUpdateClient",
+		//"/ibc.core.client.v1.MsgUpdateClient",
 	}
 
 	supportedMsgTypes := []string{
 		"/cosmos.bank.v1beta1.MsgSend",
 		"/ibc.core.channel.v1.MsgRecvPacket",
 		"/ibc.core.channel.v1.MsgAcknowledgement",
+		"/ibc.core.client.v1.MsgUpdateClient",
 	}
 
 	// Skipping message types that are not properly handled and can cause errors

@@ -8,6 +8,7 @@ import (
 	"github.com/DefiantLabs/cosmos-indexer/util"
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/ibc-go/v4/modules/apps/transfer/types"
+	clitypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
 	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
 )
 
@@ -209,4 +210,49 @@ func (w *WrapperMsgAcknowledgement) String() string {
 	}
 
 	return fmt.Sprintf("MsgAcknowledgement: IBC transfer of %s%s from %s to %s\n", w.Amount, w.Denom, w.SenderAddress, w.ReceiverAddress)
+}
+
+type WrapperMsgUpdateClient struct {
+	txModule.Message
+	MsgUpdateClient *clitypes.MsgUpdateClient
+	ClientID        string
+	SignerAddress   string
+}
+
+func (w *WrapperMsgUpdateClient) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	w.Type = msgType
+	w.MsgUpdateClient = msg.(*clitypes.MsgUpdateClient)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	// Access relevant data from the MsgUpdateClient
+	w.ClientID = w.MsgUpdateClient.ClientId
+	w.SignerAddress = w.MsgUpdateClient.Signer
+
+	return nil
+}
+
+func (w *WrapperMsgUpdateClient) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData []parsingTypes.MessageRelevantInformation
+
+	currRelevantData := parsingTypes.MessageRelevantInformation{
+		SenderAddress:        w.ClientID,
+		ReceiverAddress:      w.SignerAddress,
+		AmountSent:           nil,
+		AmountReceived:       nil,
+		DenominationSent:     "",
+		DenominationReceived: "",
+	}
+
+	relevantData = append(relevantData, currRelevantData)
+
+	return relevantData
+}
+
+func (w *WrapperMsgUpdateClient) String() string {
+	return fmt.Sprintf("WrapperMsgUpdateClient: ClientID=%s, SignerAddress=%s", w.ClientID, w.SignerAddress)
 }
