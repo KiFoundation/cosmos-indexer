@@ -430,26 +430,58 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				//"/ibc.core.channel.v1.MsgAcknowledgement",
 			}
 
+			supportedMsgTypes := []string{
+				"/cosmos.bank.v1beta1.MsgSend",
+				"/ibc.core.channel.v1.MsgRecvPacket",
+				"/ibc.core.channel.v1.MsgAcknowledgement",
+			}
+
 			currMessage.MessageValue = nil
 			if !contains(excludedMsgTypes, msgType) {
-				jsonMsgValue, err := json.Marshal(tx.Tx.Body.Messages[messageIndex])
-				if err != nil {
-					config.Log.Error("Error marshaling to JSON:", err)
+				// Checking if the message type is supported for parsing
+				if contains(supportedMsgTypes, msgType) {
+					jsonMsgValue, err := json.Marshal(cosmosMessage.ParseRelevantData())
+					if err != nil {
+						config.Log.Error("Error marshaling to JSON:", err)
+					}
+
+					// Create a map to hold the JSON data
+					var jsonbMsgValue dbTypes.JSONB
+
+					// Unmarshal the raw message into the map
+					err = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
+					if err != nil {
+						config.Log.Error("Error unmarshaling to JSONB:", err)
+					}
+
+					currMessage.MessageValue = jsonbMsgValue
+				} else {
+					jsonMsgValue, err := json.Marshal(tx.Tx.Body.Messages[messageIndex])
+					if err != nil {
+						config.Log.Error("Error marshaling to JSON:", err)
+					}
+
+					// Create a map to hold the JSON data
+					var jsonbMsgValue interface{}
+
+					// Unmarshal the raw message into the map
+					err = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
+					if err != nil {
+						config.Log.Error("Error unmarshaling to JSONB:", err)
+					}
+
+					var jsonbMsgValueList dbTypes.JSONB
+					jsonbMsgValueList = append(jsonbMsgValueList, jsonbMsgValue)
+
+					currMessage.MessageValue = jsonbMsgValueList
 				}
 
-				// Create a map to hold the JSON data
-				var jsonbMsgValue interface{}
+				// -------------------------------------------------------------------------------------------------
+				config.Log.Info(fmt.Sprintf("MESSAGE TYPE : %+v\n", msgType))
+				config.Log.Info(fmt.Sprintf("MESSAGE RAW : %+v\n", tx.Tx.Body.Messages))
+				config.Log.Info(fmt.Sprintf("MESSAGE INSERTED : %+v\n", currMessage.MessageValue...))
+				// -------------------------------------------------------------------------------------------------
 
-				// Unmarshal the raw message into the map
-				err = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
-				if err != nil {
-					config.Log.Error("Error unmarshaling to JSONB:", err)
-				}
-
-				var jsonbMsgValueList dbTypes.JSONB
-				jsonbMsgValueList = append(jsonbMsgValueList, jsonbMsgValue)
-
-				currMessage.MessageValue = jsonbMsgValueList
 			}
 
 			if err != nil {

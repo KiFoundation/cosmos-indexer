@@ -199,7 +199,7 @@ type Epoch struct {
 	EpochNumber  uint
 }
 
-// JSONB Interface for JSONB Field of yourTableName Table
+// Creating a JSONB type for later gorm database insertion
 type JSONB []interface{}
 
 // Value Marshal
