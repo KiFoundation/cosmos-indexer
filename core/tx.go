@@ -183,16 +183,18 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 	// Retrieve the message raw value and convert it to jsonb for future gorm insertion
 	messageValue = nil
 	// Appending MsgValue to currMessage depending on the message type
-	// Some message types might not be supported for marshaling operations, exclude those here
+	// Some messages types might not be supported for marshaling operations, exclude those here
 	excludedMsgTypes := []string{
-		//"/ibc.core.client.v1.MsgUpdateClient",
+		"/ibc.core.client.v1.MsgUpdateClient",
 	}
 
+	// Some messages types might be convenient to parse using already implemented handleMsg functions
 	supportedMsgTypes := []string{
-		"/cosmos.bank.v1beta1.MsgSend",
+		//"/cosmos.bank.v1beta1.MsgSend",
 		"/ibc.core.channel.v1.MsgRecvPacket",
 		"/ibc.core.channel.v1.MsgAcknowledgement",
-		"/ibc.core.client.v1.MsgUpdateClient",
+		//"/ibc.core.client.v1.MsgUpdateClient",
+		"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward",
 	}
 
 	// Skipping message types that are not properly handled and can cause errors
