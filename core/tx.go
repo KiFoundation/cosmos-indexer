@@ -206,36 +206,29 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 		// Checking if we should use the data parsed by the handler or the raw data
 		if contains(supportedMsgTypes, cosmosMessage.Type) {
 			// Fetching handler parsed data when there is an appropriate handler for the message type
-			// -------------------------------------------------------------------------------------------------
-			config.Log.Info(fmt.Sprintf("ESSAI EXPLORATION : %+v\n", cosmosMessage.Type))
-			config.Log.Info(fmt.Sprintf("ESSAI EXPLORATION : %+v\n", msgHandler))
-			// -------------------------------------------------------------------------------------------------
 			jsonMsgValue, marshalingError = json.Marshal(msgHandler)
-			if marshalingError != nil {
-				config.Log.Error("Error marshaling to JSON:", err)
-			}
-
-			// Unmarshal the raw message into the map
-			marshalingError = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
-			if marshalingError != nil {
-				config.Log.Error("Error unmarshaling to JSONB:", err)
-			}
 		} else {
 			// Parsing raw messages when no appropriate handler is available
 			jsonMsgValue, marshalingError = json.Marshal(message)
-			if marshalingError != nil {
-				config.Log.Error("Error marshaling to JSON:", err)
-			}
-
-			// Unmarshal the raw message into the map
-			marshalingError = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
-			if marshalingError != nil {
-				config.Log.Error("Error unmarshaling to JSONB:", err)
-			}
 		}
+		if marshalingError != nil {
+			config.Log.Error("Error marshaling to JSON:", err)
+		}
+
+		// Unmarshal the raw message into the map
+		marshalingError = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
+		if marshalingError != nil {
+			config.Log.Error("Error unmarshaling to JSONB:", err)
+		}
+
 		jsonbMsgValueList = append(jsonbMsgValueList, jsonbMsgValue)
 
 		messageValue = jsonbMsgValueList
+
+		// -------------------------------------------------------------------------------------------------
+		config.Log.Info(fmt.Sprintf("ESSAI EXPLORATION : %+v\n", cosmosMessage.Type))
+		config.Log.Info(fmt.Sprintf("ESSAI EXPLORATION : %+v\n", messageValue...))
+		// -------------------------------------------------------------------------------------------------
 	}
 
 	return msgHandler, cosmosMessage.Type, err, messageValue
