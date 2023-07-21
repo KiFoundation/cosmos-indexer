@@ -199,45 +199,43 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 
 	// Skipping message types that are not properly handled and can cause errors
 	if !contains(excludedMsgTypes, cosmosMessage.Type) {
+		var jsonMsgValue []byte
+		var jsonbMsgValue interface{}
+		var marshalingError error
+		var jsonbMsgValueList dbTypes.JSONB
 		// Checking if we should use the data parsed by the handler or the raw data
 		if contains(supportedMsgTypes, cosmosMessage.Type) {
 			// Fetching handler parsed data when there is an appropriate handler for the message type
-			jsonMsgValue, marshalingError := json.Marshal(msgHandler.ParseRelevantData())
+			// -------------------------------------------------------------------------------------------------
+			config.Log.Info(fmt.Sprintf("ESSAI EXPLORATION : %+v\n", cosmosMessage.Type))
+			config.Log.Info(fmt.Sprintf("ESSAI EXPLORATION : %+v\n", msgHandler))
+			// -------------------------------------------------------------------------------------------------
+			jsonMsgValue, marshalingError = json.Marshal(msgHandler)
 			if marshalingError != nil {
 				config.Log.Error("Error marshaling to JSON:", err)
 			}
-
-			// Create a map to hold the JSON data
-			var jsonbMsgValue dbTypes.JSONB
 
 			// Unmarshal the raw message into the map
 			marshalingError = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
 			if marshalingError != nil {
 				config.Log.Error("Error unmarshaling to JSONB:", err)
 			}
-
-			messageValue = jsonbMsgValue
 		} else {
 			// Parsing raw messages when no appropriate handler is available
-			jsonMsgValue, marshalingError := json.Marshal(message)
+			jsonMsgValue, marshalingError = json.Marshal(message)
 			if marshalingError != nil {
 				config.Log.Error("Error marshaling to JSON:", err)
 			}
-
-			// Create a map to hold the JSON data
-			var jsonbMsgValue interface{}
 
 			// Unmarshal the raw message into the map
 			marshalingError = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
 			if marshalingError != nil {
 				config.Log.Error("Error unmarshaling to JSONB:", err)
 			}
-
-			var jsonbMsgValueList dbTypes.JSONB
-			jsonbMsgValueList = append(jsonbMsgValueList, jsonbMsgValue)
-
-			messageValue = jsonbMsgValueList
 		}
+		jsonbMsgValueList = append(jsonbMsgValueList, jsonbMsgValue)
+
+		messageValue = jsonbMsgValueList
 	}
 
 	return msgHandler, cosmosMessage.Type, err, messageValue
