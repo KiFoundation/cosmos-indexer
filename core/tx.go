@@ -53,6 +53,7 @@ var messageTypeHandler = map[string][]func() txtypes.CosmosMessage{
 	staking.MsgBeginRedelegate:                  {func() txtypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} }},
 	ibc.MsgRecvPacket:                           {func() txtypes.CosmosMessage { return &ibc.WrapperMsgRecvPacket{} }},
 	ibc.MsgAcknowledgement:                      {func() txtypes.CosmosMessage { return &ibc.WrapperMsgAcknowledgement{} }},
+	ibc.MsgTransfer:                             {func() txtypes.CosmosMessage { return &ibc.WrapperMsgTransfer{} }},
 	ibc.MsgUpdateClient:                         {func() txtypes.CosmosMessage { return &ibc.WrapperMsgUpdateClient{} }},
 }
 
@@ -71,8 +72,8 @@ var messageTypeIgnorer = map[string]interface{}{
 	// Voting is not taxable
 	gov.MsgVote: nil,
 	// The IBC msgs below do not create taxable events
-	ibc.MsgTransfer: nil,
-	//ibc.MsgUpdateClient:          nil,
+	// ibc.MsgTransfer: nil,
+	// ibc.MsgUpdateClient:          nil,
 	ibc.MsgTimeout:               nil,
 	ibc.MsgTimeoutOnClose:        nil,
 	ibc.MsgCreateClient:          nil,
@@ -155,17 +156,28 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 	var err error
 	var msgHandler txtypes.CosmosMessage
 	var handlerList []func() txtypes.CosmosMessage
-	var messageValue dbTypes.JSONB
 
 	// Figure out what type of Message this is based on the '@type' field that is included
 	// in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
 	cosmosMessage := txtypes.Message{}
 	cosmosMessage.Type = types.MsgTypeURL(message)
 
+	var messageValue dbTypes.JSONB
+	var jsonMsgValue []byte
+	var jsonbMsgValue interface{}
+	var marshalingError error
+	var jsonbMsgValueList dbTypes.JSONB
+
+	// Retrieve the message raw value and convert it to jsonb for future gorm insertion
+	messageValue = nil
+	marshalingError = nil
+
 	// So far we only parsed the '@type' field. Now we get a struct for that specific type.
 	if handlerList, ok = messageTypeHandler[cosmosMessage.Type]; !ok {
 		msgHandler = nil
 		err = txtypes.ErrUnknownMessage
+		// Parsing raw messages when no appropriate handler is available
+		jsonMsgValue, marshalingError = json.Marshal(message)
 	} else {
 		for _, handlerFunc := range handlerList {
 			// Unmarshal the rest of the JSON now that we know the specific type.
@@ -178,58 +190,80 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 				break
 			}
 		}
-	}
-
-	// Retrieve the message raw value and convert it to jsonb for future gorm insertion
-	messageValue = nil
-	// Appending MsgValue to currMessage depending on the message type
-	// Some messages types might not be supported for marshaling operations, exclude those here
-	excludedMsgTypes := []string{
-		"/ibc.core.client.v1.MsgUpdateClient",
-	}
-
-	// Some messages types might be convenient to parse using already implemented handleMsg functions
-	supportedMsgTypes := []string{
-		//"/cosmos.bank.v1beta1.MsgSend",
-		"/ibc.core.channel.v1.MsgRecvPacket",
-		"/ibc.core.channel.v1.MsgAcknowledgement",
-		//"/ibc.core.client.v1.MsgUpdateClient",
-		"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward",
-	}
-
-	// Skipping message types that are not properly handled and can cause errors
-	if !contains(excludedMsgTypes, cosmosMessage.Type) {
-		var jsonMsgValue []byte
-		var jsonbMsgValue interface{}
-		var marshalingError error
-		var jsonbMsgValueList dbTypes.JSONB
-		// Checking if we should use the data parsed by the handler or the raw data
-		if contains(supportedMsgTypes, cosmosMessage.Type) {
-			// Fetching handler parsed data when there is an appropriate handler for the message type
-			jsonMsgValue, marshalingError = json.Marshal(msgHandler)
-		} else {
-			// Parsing raw messages when no appropriate handler is available
-			jsonMsgValue, marshalingError = json.Marshal(message)
-		}
-		if marshalingError != nil {
-			config.Log.Error("Error marshaling to JSON:", err)
-		}
-
-		// Unmarshal the raw message into the map
-		marshalingError = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
-		if marshalingError != nil {
-			config.Log.Error("Error unmarshaling to JSONB:", err)
-		}
-
-		jsonbMsgValueList = append(jsonbMsgValueList, jsonbMsgValue)
-
-		messageValue = jsonbMsgValueList
 
 		// -------------------------------------------------------------------------------------------------
 		config.Log.Info(fmt.Sprintf("ESSAI EXPLORATION : %+v\n", cosmosMessage.Type))
-		config.Log.Info(fmt.Sprintf("ESSAI EXPLORATION : %+v\n", messageValue...))
+		config.Log.Info(fmt.Sprintf("ESSAI EXPLORATION : %+v\n", msgHandler))
 		// -------------------------------------------------------------------------------------------------
+
+		// Fetching handler parsed data when there is an appropriate handler for the message type
+		jsonMsgValue, marshalingError = json.Marshal(msgHandler)
 	}
+	if marshalingError != nil {
+		config.Log.Error("Error marshaling to JSON:", err)
+	}
+
+	// Unmarshal the raw message into the map
+	marshalingError = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
+	if marshalingError != nil {
+		config.Log.Error("Error unmarshaling to JSONB:", err)
+	}
+
+	jsonbMsgValueList = append(jsonbMsgValueList, jsonbMsgValue)
+
+	messageValue = jsonbMsgValueList
+
+	/*
+			// Appending MsgValue to currMessage depending on the message type
+			// Some messages types might not be supported for marshaling operations, exclude those here
+			excludedMsgTypes := []string{
+				"/ibc.core.client.v1.MsgUpdateClient",
+			}
+
+
+		// Some messages types might be convenient to parse using already implemented handleMsg functions
+		supportedMsgTypes := []string{
+			//"/cosmos.bank.v1beta1.MsgSend",
+			"/ibc.core.channel.v1.MsgRecvPacket",
+			"/ibc.core.channel.v1.MsgAcknowledgement",
+			//"/ibc.core.client.v1.MsgUpdateClient",
+			"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward",
+		}
+
+		// Skipping message types that are not properly handled and can cause errors
+		if !contains(excludedMsgTypes, cosmosMessage.Type) {
+			var jsonMsgValue []byte
+			var jsonbMsgValue interface{}
+			var marshalingError error
+			var jsonbMsgValueList dbTypes.JSONB
+			// Checking if we should use the data parsed by the handler or the raw data
+			if contains(supportedMsgTypes, cosmosMessage.Type) {
+				// Fetching handler parsed data when there is an appropriate handler for the message type
+				jsonMsgValue, marshalingError = json.Marshal(msgHandler)
+			} else {
+				// Parsing raw messages when no appropriate handler is available
+				jsonMsgValue, marshalingError = json.Marshal(message)
+			}
+			if marshalingError != nil {
+				config.Log.Error("Error marshaling to JSON:", err)
+			}
+
+			// Unmarshal the raw message into the map
+			marshalingError = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
+			if marshalingError != nil {
+				config.Log.Error("Error unmarshaling to JSONB:", err)
+			}
+
+			jsonbMsgValueList = append(jsonbMsgValueList, jsonbMsgValue)
+
+			messageValue = jsonbMsgValueList
+
+			// -------------------------------------------------------------------------------------------------
+			config.Log.Info(fmt.Sprintf("ESSAI EXPLORATION : %+v\n", cosmosMessage.Type))
+			config.Log.Info(fmt.Sprintf("ESSAI EXPLORATION : %+v\n", messageValue...))
+			// -------------------------------------------------------------------------------------------------
+		}
+	*/
 
 	return msgHandler, cosmosMessage.Type, err, messageValue
 }

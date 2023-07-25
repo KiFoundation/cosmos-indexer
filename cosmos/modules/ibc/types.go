@@ -8,6 +8,7 @@ import (
 	"github.com/DefiantLabs/cosmos-indexer/util"
 	stdTypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/ibc-go/v4/modules/apps/transfer/types"
+	trantypes "github.com/cosmos/ibc-go/v4/modules/apps/transfer/types"
 	clitypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
 	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
 )
@@ -214,14 +215,15 @@ func (w *WrapperMsgAcknowledgement) String() string {
 
 type WrapperMsgUpdateClient struct {
 	txModule.Message
-	MsgUpdateClient *clitypes.MsgUpdateClient
-	ClientID        string
-	SignerAddress   string
+	// Not storing the MsgUpdateClient as it has unexported fields
+	// MsgUpdateClient *clitypes.MsgUpdateClient
+	ClientID      string
+	SignerAddress string
 }
 
 func (w *WrapperMsgUpdateClient) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	w.Type = msgType
-	w.MsgUpdateClient = msg.(*clitypes.MsgUpdateClient)
+	msgUpdateClient := msg.(*clitypes.MsgUpdateClient)
 
 	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
@@ -230,8 +232,8 @@ func (w *WrapperMsgUpdateClient) HandleMsg(msgType string, msg stdTypes.Msg, log
 	}
 
 	// Access relevant data from the MsgUpdateClient
-	w.ClientID = w.MsgUpdateClient.ClientId
-	w.SignerAddress = w.MsgUpdateClient.Signer
+	w.ClientID = msgUpdateClient.ClientId
+	w.SignerAddress = msgUpdateClient.Signer
 
 	return nil
 }
@@ -255,4 +257,62 @@ func (w *WrapperMsgUpdateClient) ParseRelevantData() []parsingTypes.MessageRelev
 
 func (w *WrapperMsgUpdateClient) String() string {
 	return fmt.Sprintf("WrapperMsgUpdateClient: ClientID=%s, SignerAddress=%s", w.ClientID, w.SignerAddress)
+}
+
+type WrapperMsgTransfer struct {
+	txModule.Message
+	MsgTransfer      *trantypes.MsgTransfer
+	SourcePort       string
+	SourceChannel    string
+	Token            stdTypes.Coin
+	Sender           string
+	Receiver         string
+	TimeoutHeight    clitypes.Height
+	TimeoutTimestamp uint64
+	Memo             string
+}
+
+func (w *WrapperMsgTransfer) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	w.Type = msgType
+	msgTransfer := msg.(*trantypes.MsgTransfer)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	// Access relevant data from the MsgTransfer
+	w.SourcePort = msgTransfer.SourcePort
+	w.SourceChannel = msgTransfer.SourceChannel
+	w.Token = msgTransfer.Token
+	w.Sender = msgTransfer.Sender
+	w.Receiver = msgTransfer.Receiver
+	w.TimeoutHeight = msgTransfer.TimeoutHeight
+	w.TimeoutTimestamp = msgTransfer.TimeoutTimestamp
+	w.Memo = msgTransfer.Memo
+
+	return nil
+}
+
+func (w *WrapperMsgTransfer) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData []parsingTypes.MessageRelevantInformation
+
+	currRelevantData := parsingTypes.MessageRelevantInformation{
+		SenderAddress:        w.Sender,
+		ReceiverAddress:      w.Receiver,
+		AmountSent:           nil,
+		AmountReceived:       nil,
+		DenominationSent:     w.Token.Denom,
+		DenominationReceived: "",
+	}
+
+	relevantData = append(relevantData, currRelevantData)
+
+	return relevantData
+}
+
+func (w *WrapperMsgTransfer) String() string {
+	return fmt.Sprintf("WrapperMsgTransfer: SourcePort=%s, SourceChannel=%s, Token=%v, Sender=%s, Receiver=%s, TimeoutHeight=%v, TimeoutTimestamp=%d, Memo=%s",
+		w.SourcePort, w.SourceChannel, w.Token, w.Sender, w.Receiver, w.TimeoutHeight, w.TimeoutTimestamp, w.Memo)
 }
