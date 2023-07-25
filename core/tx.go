@@ -56,6 +56,7 @@ var messageTypeHandler = map[string][]func() txtypes.CosmosMessage{
 	ibc.MsgTransfer:                             {func() txtypes.CosmosMessage { return &ibc.WrapperMsgTransfer{} }},
 	ibc.MsgUpdateClient:                         {func() txtypes.CosmosMessage { return &ibc.WrapperMsgUpdateClient{} }},
 	wasm.MsgExecuteContract:                     {func() txtypes.CosmosMessage { return &wasm.WrapperMsgExecuteContract{} }},
+	wasm.MsgInstantiateContract:                 {func() txtypes.CosmosMessage { return &wasm.WrapperMsgInstantiateContract{} }},
 }
 
 // These messages are ignored for tax purposes.
@@ -73,7 +74,7 @@ var messageTypeIgnorer = map[string]interface{}{
 	// Voting is not taxable
 	gov.MsgVote: nil,
 	// The IBC msgs below do not create taxable events
-	// ibc.MsgTransfer: nil,
+	// ibc.MsgTransfer:              nil,
 	// ibc.MsgUpdateClient:          nil,
 	ibc.MsgTimeout:               nil,
 	ibc.MsgTimeoutOnClose:        nil,
@@ -122,7 +123,7 @@ var messageTypeIgnorer = map[string]interface{}{
 	///////////////////////////////////////////
 	// CosmWasm
 	// wasm.MsgExecuteContract:     nil,
-	wasm.MsgInstantiateContract: nil,
+	// wasm.MsgInstantiateContract: nil,
 }
 
 // Testing if a string slice contains given val
