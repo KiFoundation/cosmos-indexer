@@ -55,6 +55,7 @@ var messageTypeHandler = map[string][]func() txtypes.CosmosMessage{
 	ibc.MsgAcknowledgement:                      {func() txtypes.CosmosMessage { return &ibc.WrapperMsgAcknowledgement{} }},
 	ibc.MsgTransfer:                             {func() txtypes.CosmosMessage { return &ibc.WrapperMsgTransfer{} }},
 	ibc.MsgUpdateClient:                         {func() txtypes.CosmosMessage { return &ibc.WrapperMsgUpdateClient{} }},
+	wasm.MsgExecuteContract:                     {func() txtypes.CosmosMessage { return &wasm.WrapperMsgExecuteContract{} }},
 }
 
 // These messages are ignored for tax purposes.
@@ -120,7 +121,7 @@ var messageTypeIgnorer = map[string]interface{}{
 	/////// Taxable Events, future work ///////
 	///////////////////////////////////////////
 	// CosmWasm
-	wasm.MsgExecuteContract:     nil,
+	// wasm.MsgExecuteContract:     nil,
 	wasm.MsgInstantiateContract: nil,
 }
 
