@@ -57,6 +57,9 @@ var messageTypeHandler = map[string][]func() txtypes.CosmosMessage{
 	ibc.MsgUpdateClient:                         {func() txtypes.CosmosMessage { return &ibc.WrapperMsgUpdateClient{} }},
 	wasm.MsgExecuteContract:                     {func() txtypes.CosmosMessage { return &wasm.WrapperMsgExecuteContract{} }},
 	wasm.MsgInstantiateContract:                 {func() txtypes.CosmosMessage { return &wasm.WrapperMsgInstantiateContract{} }},
+	authz.MsgExec:                               {func() txtypes.CosmosMessage { return &authz.WrapperMsgExec{} }},
+	authz.MsgGrant:                              {func() txtypes.CosmosMessage { return &authz.WrapperMsgGrant{} }},
+	authz.MsgRevoke:                             {func() txtypes.CosmosMessage { return &authz.WrapperMsgRevoke{} }},
 }
 
 // These messages are ignored for tax purposes.
@@ -66,9 +69,9 @@ var messageTypeIgnorer = map[string]interface{}{
 	/////// Nontaxable Events ///////
 	/////////////////////////////////
 	// Authz module actions are not taxable
-	authz.MsgExec:   nil,
-	authz.MsgGrant:  nil,
-	authz.MsgRevoke: nil,
+	// authz.MsgExec:   nil,
+	// authz.MsgGrant:  nil,
+	// authz.MsgRevoke: nil,
 	// Making a config change is not taxable
 	distribution.MsgSetWithdrawAddress: nil,
 	// Voting is not taxable
