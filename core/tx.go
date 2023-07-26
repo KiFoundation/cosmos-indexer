@@ -46,11 +46,16 @@ var messageTypeHandler = map[string][]func() txtypes.CosmosMessage{
 	distribution.MsgWithdrawDelegatorReward:     {func() txtypes.CosmosMessage { return &distribution.WrapperMsgWithdrawDelegatorReward{} }},
 	distribution.MsgWithdrawValidatorCommission: {func() txtypes.CosmosMessage { return &distribution.WrapperMsgWithdrawValidatorCommission{} }},
 	distribution.MsgFundCommunityPool:           {func() txtypes.CosmosMessage { return &distribution.WrapperMsgFundCommunityPool{} }},
+	distribution.MsgSetWithdrawAddress:          {func() txtypes.CosmosMessage { return &distribution.WrapperMsgSetWithdrawAddress{} }},
 	gov.MsgDeposit:                              {func() txtypes.CosmosMessage { return &gov.WrapperMsgDeposit{} }},
 	gov.MsgSubmitProposal:                       {func() txtypes.CosmosMessage { return &gov.WrapperMsgSubmitProposal{} }},
+	gov.MsgVote:                                 {func() txtypes.CosmosMessage { return &gov.WrapperMsgVote{} }},
+	gov.MsgVoteWeighted:                         {func() txtypes.CosmosMessage { return &gov.WrapperMsgVoteWeighted{} }},
 	staking.MsgDelegate:                         {func() txtypes.CosmosMessage { return &staking.WrapperMsgDelegate{} }},
 	staking.MsgUndelegate:                       {func() txtypes.CosmosMessage { return &staking.WrapperMsgUndelegate{} }},
 	staking.MsgBeginRedelegate:                  {func() txtypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} }},
+	staking.MsgCreateValidator:                  {func() txtypes.CosmosMessage { return &staking.WrapperMsgCreateValidator{} }},
+	staking.MsgEditValidator:                    {func() txtypes.CosmosMessage { return &staking.WrapperMsgEditValidator{} }},
 	ibc.MsgRecvPacket:                           {func() txtypes.CosmosMessage { return &ibc.WrapperMsgRecvPacket{} }},
 	ibc.MsgAcknowledgement:                      {func() txtypes.CosmosMessage { return &ibc.WrapperMsgAcknowledgement{} }},
 	ibc.MsgTransfer:                             {func() txtypes.CosmosMessage { return &ibc.WrapperMsgTransfer{} }},
@@ -60,6 +65,7 @@ var messageTypeHandler = map[string][]func() txtypes.CosmosMessage{
 	authz.MsgExec:                               {func() txtypes.CosmosMessage { return &authz.WrapperMsgExec{} }},
 	authz.MsgGrant:                              {func() txtypes.CosmosMessage { return &authz.WrapperMsgGrant{} }},
 	authz.MsgRevoke:                             {func() txtypes.CosmosMessage { return &authz.WrapperMsgRevoke{} }},
+	vesting.MsgCreateVestingAccount:             {func() txtypes.CosmosMessage { return &vesting.WrapperMsgCreateVestingAccount{} }},
 }
 
 // These messages are ignored for tax purposes.
@@ -73,9 +79,9 @@ var messageTypeIgnorer = map[string]interface{}{
 	// authz.MsgGrant:  nil,
 	// authz.MsgRevoke: nil,
 	// Making a config change is not taxable
-	distribution.MsgSetWithdrawAddress: nil,
+	// distribution.MsgSetWithdrawAddress: nil,
 	// Voting is not taxable
-	gov.MsgVote: nil,
+	// gov.MsgVote: nil,
 	// The IBC msgs below do not create taxable events
 	// ibc.MsgTransfer:              nil,
 	// ibc.MsgUpdateClient:          nil,
@@ -103,8 +109,8 @@ var messageTypeIgnorer = map[string]interface{}{
 	slashing.MsgUnjail:       nil,
 	slashing.MsgUpdateParams: nil,
 	// Creating and editing validator is not taxable
-	staking.MsgCreateValidator: nil,
-	staking.MsgEditValidator:   nil,
+	// staking.MsgCreateValidator: nil,
+	// staking.MsgEditValidator:   nil,
 	// Delegating and Locking are not taxable
 	superfluid.MsgSuperfluidDelegate:        nil,
 	superfluid.MsgSuperfluidUndelegate:      nil,
@@ -112,7 +118,7 @@ var messageTypeIgnorer = map[string]interface{}{
 	superfluid.MsgLockAndSuperfluidDelegate: nil,
 	superfluid.MsgUnPoolWhitelistedPool:     nil,
 	// Create account is not taxable
-	vesting.MsgCreateVestingAccount: nil,
+	// vesting.MsgCreateVestingAccount: nil,
 
 	// Tendermint Liquidity messages are actually executed in batches during periodic EndBlocker events
 	// We ignore the Message types since the actual taxable events happen later, and the messages can fail/be refunded
@@ -195,11 +201,6 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 				break
 			}
 		}
-
-		// -------------------------------------------------------------------------------------------------
-		config.Log.Info(fmt.Sprintf("ESSAI EXPLORATION : %+v\n", cosmosMessage.Type))
-		config.Log.Info(fmt.Sprintf("ESSAI EXPLORATION : %+v\n", msgHandler))
-		// -------------------------------------------------------------------------------------------------
 
 		// Fetching handler parsed data when there is an appropriate handler for the message type
 		jsonMsgValue, marshalingError = json.Marshal(msgHandler)

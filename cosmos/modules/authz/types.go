@@ -70,6 +70,9 @@ func (w *WrapperMsgGrant) HandleMsg(msgType string, msg stdTypes.Msg, log *txMod
 	w.Type = msgType
 	w.MsgGrant = msg.(*authzTypes.MsgGrant)
 
+	// Removing types.any field to avoid error
+	w.MsgGrant.Grant.Authorization = nil
+
 	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
 	if !validLog {

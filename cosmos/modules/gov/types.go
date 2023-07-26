@@ -35,6 +35,16 @@ type WrapperMsgDeposit struct {
 	DepositReceiverAddress string
 }
 
+type WrapperMsgVote struct {
+	txModule.Message
+	MsgVote *govTypes.MsgVote
+}
+
+type WrapperMsgVoteWeighted struct {
+	txModule.Message
+	MsgVoteWeighted *govTypes.MsgVoteWeighted
+}
+
 func (sf *WrapperMsgSubmitProposal) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	relevantData := make([]parsingTypes.MessageRelevantInformation, len(sf.CosmosMsgSubmitProposal.InitialDeposit))
 
@@ -79,6 +89,42 @@ func (sf *WrapperMsgDeposit) ParseRelevantData() []parsingTypes.MessageRelevantI
 	return relevantData
 }
 
+func (w *WrapperMsgVote) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData []parsingTypes.MessageRelevantInformation
+
+	// Extract data from the MsgVote and populate the relevant fields in MessageRelevantInformation struct.
+	currRelevantData := parsingTypes.MessageRelevantInformation{
+		SenderAddress:        w.MsgVote.Voter,
+		ReceiverAddress:      "",  // Set to empty string as we don't have this data in MsgVote
+		AmountSent:           nil, // Set to nil as we don't have this data in MsgVote
+		AmountReceived:       nil, // Set to nil as we don't have this data in MsgVote
+		DenominationSent:     "",  // Set to empty string as we don't have this data in MsgVote
+		DenominationReceived: "",  // Set to empty string as we don't have this data in MsgVote
+	}
+
+	relevantData = append(relevantData, currRelevantData)
+
+	return relevantData
+}
+
+func (w *WrapperMsgVoteWeighted) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData []parsingTypes.MessageRelevantInformation
+
+	// Extract data from the MsgVoteWeighted and populate the relevant fields in MessageRelevantInformation struct.
+	currRelevantData := parsingTypes.MessageRelevantInformation{
+		SenderAddress:        w.MsgVoteWeighted.Voter,
+		ReceiverAddress:      "",  // Set to empty string as we don't have this data in MsgVoteWeighted
+		AmountSent:           nil, // Set to nil as we don't have this data in MsgVoteWeighted
+		AmountReceived:       nil, // Set to nil as we don't have this data in MsgVoteWeighted
+		DenominationSent:     "",  // Set to empty string as we don't have this data in MsgVoteWeighted
+		DenominationReceived: "",  // Set to empty string as we don't have this data in MsgVoteWeighted
+	}
+
+	relevantData = append(relevantData, currRelevantData)
+
+	return relevantData
+}
+
 // Proposal with an initial deposit
 func (sf *WrapperMsgSubmitProposal) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
@@ -111,6 +157,9 @@ func (sf *WrapperMsgSubmitProposal) HandleMsg(msgType string, msg stdTypes.Msg, 
 	} else {
 		sf.CoinReceived = coin
 	}
+
+	// Setting types.Any to nil to avoid mashalJSON error
+	sf.CosmosMsgSubmitProposal.Content = nil
 
 	return err
 }
@@ -152,6 +201,32 @@ func (sf *WrapperMsgDeposit) HandleMsg(msgType string, msg stdTypes.Msg, log *tx
 	return err
 }
 
+func (w *WrapperMsgVote) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	w.Type = msgType
+	w.MsgVote = msg.(*govTypes.MsgVote)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	return nil
+}
+
+func (w *WrapperMsgVoteWeighted) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	w.Type = msgType
+	w.MsgVoteWeighted = msg.(*govTypes.MsgVoteWeighted)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	return nil
+}
+
 func (sf *WrapperMsgDeposit) String() string {
 	return fmt.Sprintf("WrapperMsgDeposit: Address %s deposited %s",
 		sf.CosmosMsgDeposit.Depositor, sf.CosmosMsgDeposit.Amount)
@@ -160,4 +235,14 @@ func (sf *WrapperMsgDeposit) String() string {
 func (sf *WrapperMsgSubmitProposal) String() string {
 	return fmt.Sprintf("WrapperMsgDeposit: Address %s deposited %s",
 		sf.CosmosMsgSubmitProposal.Proposer, sf.CosmosMsgSubmitProposal.InitialDeposit)
+}
+
+func (w *WrapperMsgVote) String() string {
+	return fmt.Sprintf("WrapperMsgVote: ProposalId=%d, Voter=%s, Option=%v",
+		w.MsgVote.ProposalId, w.MsgVote.Voter, w.MsgVote.Option)
+}
+
+func (w *WrapperMsgVoteWeighted) String() string {
+	return fmt.Sprintf("WrapperMsgVoteWeighted: ProposalId=%d, Voter=%s, Options=%v",
+		w.MsgVoteWeighted.ProposalId, w.MsgVoteWeighted.Voter, w.MsgVoteWeighted.Options)
 }

@@ -275,3 +275,88 @@ func (sf *WrapperMsgBeginRedelegate) String() string {
 	}
 	return fmt.Sprintf("MsgBeginRedelegate: Delegator %s did not auto-withdrawal rewards", sf.DelegatorAddress)
 }
+
+type WrapperMsgEditValidator struct {
+	txModule.Message
+	MsgEditValidator *stakeTypes.MsgEditValidator
+}
+
+func (w *WrapperMsgEditValidator) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	w.Type = msgType
+	w.MsgEditValidator = msg.(*stakeTypes.MsgEditValidator)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	return nil
+}
+
+func (w *WrapperMsgEditValidator) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData []parsingTypes.MessageRelevantInformation
+
+	// Extract data from the MsgEditValidator and populate the relevant fields in MessageRelevantInformation struct.
+	currRelevantData := parsingTypes.MessageRelevantInformation{
+		SenderAddress:        "", // Set to empty string as we don't have this data in MsgEditValidator
+		ReceiverAddress:      w.MsgEditValidator.ValidatorAddress,
+		AmountSent:           nil, // Set to nil as we don't have this data in MsgEditValidator
+		AmountReceived:       nil, // Set to nil as we don't have this data in MsgEditValidator
+		DenominationSent:     "",  // Set to empty string as we don't have this data in MsgEditValidator
+		DenominationReceived: "",  // Set to empty string as we don't have this data in MsgEditValidator
+	}
+
+	relevantData = append(relevantData, currRelevantData)
+
+	return relevantData
+}
+
+func (w *WrapperMsgEditValidator) String() string {
+	return fmt.Sprintf("WrapperMsgEditValidator: ValidatorAddress=%s, CommissionRate=%v, MinSelfDelegation=%v",
+		w.MsgEditValidator.ValidatorAddress, w.MsgEditValidator.CommissionRate, w.MsgEditValidator.MinSelfDelegation)
+}
+
+type WrapperMsgCreateValidator struct {
+	txModule.Message
+	MsgCreateValidator *stakeTypes.MsgCreateValidator
+}
+
+func (w *WrapperMsgCreateValidator) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	w.Type = msgType
+	w.MsgCreateValidator = msg.(*stakeTypes.MsgCreateValidator)
+
+	// Removing types.any field to avoid marshalling errors
+	w.MsgCreateValidator.Pubkey = nil
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	return nil
+}
+
+func (w *WrapperMsgCreateValidator) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData []parsingTypes.MessageRelevantInformation
+
+	// Extract data from the MsgCreateValidator and populate the relevant fields in MessageRelevantInformation struct.
+	currRelevantData := parsingTypes.MessageRelevantInformation{
+		SenderAddress:        w.MsgCreateValidator.DelegatorAddress,
+		ReceiverAddress:      w.MsgCreateValidator.ValidatorAddress,
+		AmountSent:           nil, // Set to nil as we don't have this data in MsgCreateValidator
+		AmountReceived:       nil, // Set to nil as we don't have this data in MsgCreateValidator
+		DenominationSent:     "",  // Set to empty string as we don't have this data in MsgCreateValidator
+		DenominationReceived: "",  // Set to empty string as we don't have this data in MsgCreateValidator
+	}
+
+	relevantData = append(relevantData, currRelevantData)
+
+	return relevantData
+}
+
+func (w *WrapperMsgCreateValidator) String() string {
+	return fmt.Sprintf("WrapperMsgCreateValidator: DelegatorAddress=%s, ValidatorAddress=%s, MinSelfDelegation=%v",
+		w.MsgCreateValidator.DelegatorAddress, w.MsgCreateValidator.ValidatorAddress, w.MsgCreateValidator.MinSelfDelegation)
+}

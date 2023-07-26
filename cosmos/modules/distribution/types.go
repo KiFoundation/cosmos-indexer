@@ -223,3 +223,44 @@ func (sf *WrapperMsgFundCommunityPool) String() string {
 	return fmt.Sprintf("MsgFundCommunityPool: Depositor %s gave %s",
 		depositorAddress, coinsReceivedString)
 }
+
+type WrapperMsgSetWithdrawAddress struct {
+	txModule.Message
+	MsgSetWithdrawAddress *distTypes.MsgSetWithdrawAddress
+}
+
+func (w *WrapperMsgSetWithdrawAddress) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	w.Type = msgType
+	w.MsgSetWithdrawAddress = msg.(*distTypes.MsgSetWithdrawAddress)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	return nil
+}
+
+func (w *WrapperMsgSetWithdrawAddress) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData []parsingTypes.MessageRelevantInformation
+
+	// Extract data from the MsgSetWithdrawAddress and populate the relevant fields in MessageRelevantInformation struct.
+	currRelevantData := parsingTypes.MessageRelevantInformation{
+		SenderAddress:        w.MsgSetWithdrawAddress.DelegatorAddress,
+		ReceiverAddress:      w.MsgSetWithdrawAddress.WithdrawAddress,
+		AmountSent:           nil, // Set to nil as we don't have this data in MsgSetWithdrawAddress
+		AmountReceived:       nil, // Set to nil as we don't have this data in MsgSetWithdrawAddress
+		DenominationSent:     "",  // Set to empty string as we don't have this data in MsgSetWithdrawAddress
+		DenominationReceived: "",  // Set to empty string as we don't have this data in MsgSetWithdrawAddress
+	}
+
+	relevantData = append(relevantData, currRelevantData)
+
+	return relevantData
+}
+
+func (w *WrapperMsgSetWithdrawAddress) String() string {
+	return fmt.Sprintf("WrapperMsgSetWithdrawAddress: DelegatorAddress=%s, WithdrawAddress=%s",
+		w.MsgSetWithdrawAddress.DelegatorAddress, w.MsgSetWithdrawAddress.WithdrawAddress)
+}
