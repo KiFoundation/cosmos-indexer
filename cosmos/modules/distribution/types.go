@@ -22,31 +22,31 @@ const (
 
 type WrapperMsgFundCommunityPool struct {
 	txModule.Message
-	CosmosMsgFundCommunityPool *distTypes.MsgFundCommunityPool
-	Depositor                  string
-	Funds                      stdTypes.Coins
+	MsgValue  *distTypes.MsgFundCommunityPool
+	Depositor string
+	Funds     stdTypes.Coins
 }
 
 type WrapperMsgWithdrawValidatorCommission struct {
 	txModule.Message
-	CosmosMsgWithdrawValidatorCommission *distTypes.MsgWithdrawValidatorCommission
-	DelegatorReceiverAddress             string
-	CoinsReceived                        stdTypes.Coin
-	MultiCoinsReceived                   stdTypes.Coins
+	MsgValue                 *distTypes.MsgWithdrawValidatorCommission
+	DelegatorReceiverAddress string
+	CoinsReceived            stdTypes.Coin
+	MultiCoinsReceived       stdTypes.Coins
 }
 
 type WrapperMsgWithdrawDelegatorReward struct {
 	txModule.Message
-	CosmosMsgWithdrawDelegatorReward *distTypes.MsgWithdrawDelegatorReward
-	CoinReceived                     stdTypes.Coin
-	MultiCoinsReceived               stdTypes.Coins
-	RecipientAddress                 string
+	MsgValue           *distTypes.MsgWithdrawDelegatorReward
+	CoinReceived       stdTypes.Coin
+	MultiCoinsReceived stdTypes.Coins
+	RecipientAddress   string
 }
 
 // HandleMsg: Handle type checking for MsgFundCommunityPool
 func (sf *WrapperMsgFundCommunityPool) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
-	sf.CosmosMsgFundCommunityPool = msg.(*distTypes.MsgFundCommunityPool)
+	sf.MsgValue = msg.(*distTypes.MsgFundCommunityPool)
 
 	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
@@ -55,8 +55,8 @@ func (sf *WrapperMsgFundCommunityPool) HandleMsg(msgType string, msg stdTypes.Ms
 	}
 
 	// Funds sent and sender address are pulled from the parsed Cosmos Msg
-	sf.Depositor = sf.CosmosMsgFundCommunityPool.Depositor
-	sf.Funds = sf.CosmosMsgFundCommunityPool.Amount
+	sf.Depositor = sf.MsgValue.Depositor
+	sf.Funds = sf.MsgValue.Amount
 
 	return nil
 }
@@ -64,7 +64,7 @@ func (sf *WrapperMsgFundCommunityPool) HandleMsg(msgType string, msg stdTypes.Ms
 // HandleMsg: Handle type checking for WrapperMsgWithdrawValidatorCommission
 func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
-	sf.CosmosMsgWithdrawValidatorCommission = msg.(*distTypes.MsgWithdrawValidatorCommission)
+	sf.MsgValue = msg.(*distTypes.MsgWithdrawValidatorCommission)
 
 	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
@@ -99,7 +99,7 @@ func (sf *WrapperMsgWithdrawValidatorCommission) HandleMsg(msgType string, msg s
 // CosmUnmarshal(): Unmarshal JSON for MsgWithdrawDelegatorReward
 func (sf *WrapperMsgWithdrawDelegatorReward) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
-	sf.CosmosMsgWithdrawDelegatorReward = msg.(*distTypes.MsgWithdrawDelegatorReward)
+	sf.MsgValue = msg.(*distTypes.MsgWithdrawDelegatorReward)
 
 	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
@@ -201,7 +201,7 @@ func (sf *WrapperMsgWithdrawDelegatorReward) String() string {
 	}
 
 	return fmt.Sprintf("MsgWithdrawDelegatorReward: Delegator %s received %s",
-		sf.CosmosMsgWithdrawDelegatorReward.DelegatorAddress, coinsReceivedString)
+		sf.MsgValue.DelegatorAddress, coinsReceivedString)
 }
 
 func (sf *WrapperMsgWithdrawValidatorCommission) String() string {
@@ -213,12 +213,12 @@ func (sf *WrapperMsgWithdrawValidatorCommission) String() string {
 	}
 
 	return fmt.Sprintf("WrapperMsgWithdrawValidatorCommission: Validator %s commission withdrawn. Delegator %s received %s",
-		sf.CosmosMsgWithdrawValidatorCommission.ValidatorAddress, sf.DelegatorReceiverAddress, coinsReceivedString)
+		sf.MsgValue.ValidatorAddress, sf.DelegatorReceiverAddress, coinsReceivedString)
 }
 
 func (sf *WrapperMsgFundCommunityPool) String() string {
-	coinsReceivedString := sf.CosmosMsgFundCommunityPool.Amount.String()
-	depositorAddress := sf.CosmosMsgFundCommunityPool.Depositor
+	coinsReceivedString := sf.MsgValue.Amount.String()
+	depositorAddress := sf.MsgValue.Depositor
 
 	return fmt.Sprintf("MsgFundCommunityPool: Depositor %s gave %s",
 		depositorAddress, coinsReceivedString)
@@ -226,15 +226,15 @@ func (sf *WrapperMsgFundCommunityPool) String() string {
 
 type WrapperMsgSetWithdrawAddress struct {
 	txModule.Message
-	MsgSetWithdrawAddress *distTypes.MsgSetWithdrawAddress
+	MsgValue *distTypes.MsgSetWithdrawAddress
 }
 
-func (w *WrapperMsgSetWithdrawAddress) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
-	w.Type = msgType
-	w.MsgSetWithdrawAddress = msg.(*distTypes.MsgSetWithdrawAddress)
+func (sf *WrapperMsgSetWithdrawAddress) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.MsgValue = msg.(*distTypes.MsgSetWithdrawAddress)
 
 	// Confirm that the action listed in the message log matches the Message type
-	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
@@ -242,13 +242,13 @@ func (w *WrapperMsgSetWithdrawAddress) HandleMsg(msgType string, msg stdTypes.Ms
 	return nil
 }
 
-func (w *WrapperMsgSetWithdrawAddress) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+func (sf *WrapperMsgSetWithdrawAddress) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	var relevantData []parsingTypes.MessageRelevantInformation
 
 	// Extract data from the MsgSetWithdrawAddress and populate the relevant fields in MessageRelevantInformation struct.
 	currRelevantData := parsingTypes.MessageRelevantInformation{
-		SenderAddress:        w.MsgSetWithdrawAddress.DelegatorAddress,
-		ReceiverAddress:      w.MsgSetWithdrawAddress.WithdrawAddress,
+		SenderAddress:        sf.MsgValue.DelegatorAddress,
+		ReceiverAddress:      sf.MsgValue.WithdrawAddress,
 		AmountSent:           nil, // Set to nil as we don't have this data in MsgSetWithdrawAddress
 		AmountReceived:       nil, // Set to nil as we don't have this data in MsgSetWithdrawAddress
 		DenominationSent:     "",  // Set to empty string as we don't have this data in MsgSetWithdrawAddress
@@ -260,7 +260,7 @@ func (w *WrapperMsgSetWithdrawAddress) ParseRelevantData() []parsingTypes.Messag
 	return relevantData
 }
 
-func (w *WrapperMsgSetWithdrawAddress) String() string {
+func (sf *WrapperMsgSetWithdrawAddress) String() string {
 	return fmt.Sprintf("WrapperMsgSetWithdrawAddress: DelegatorAddress=%s, WithdrawAddress=%s",
-		w.MsgSetWithdrawAddress.DelegatorAddress, w.MsgSetWithdrawAddress.WithdrawAddress)
+		sf.MsgValue.DelegatorAddress, sf.MsgValue.WithdrawAddress)
 }

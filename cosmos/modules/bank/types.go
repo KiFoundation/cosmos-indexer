@@ -24,7 +24,7 @@ const (
 // Note that MsgSend ignores the LogMessage because it isn't needed.
 func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
-	sf.CosmosMsgSend = msg.(*bankTypes.MsgSend)
+	sf.MsgValue = msg.(*bankTypes.MsgSend)
 
 	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
@@ -41,9 +41,9 @@ func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.L
 	receiverAddress := txModule.GetValueForAttribute(bankTypes.AttributeKeyRecipient, receivedCoinsEvt)
 	// coins_received := txModule.GetValueForAttribute("amount", receivedCoinsEvt)
 
-	if !strings.EqualFold(sf.CosmosMsgSend.ToAddress, receiverAddress) {
+	if !strings.EqualFold(sf.MsgValue.ToAddress, receiverAddress) {
 		return fmt.Errorf("transaction receiver address %s does not match log event '%s' receiver address %s",
-			sf.CosmosMsgSend.ToAddress, bankTypes.EventTypeCoinReceived, receiverAddress)
+			sf.MsgValue.ToAddress, bankTypes.EventTypeCoinReceived, receiverAddress)
 	}
 
 	return nil
@@ -51,12 +51,12 @@ func (sf *WrapperMsgSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.L
 
 func (sf *WrapperMsgMultiSend) HandleMsg(msgType string, msg sdk.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
-	sf.CosmosMsgMultiSend = msg.(*bankTypes.MsgMultiSend)
+	sf.MsgValue = msg.(*bankTypes.MsgMultiSend)
 
 	// Make sure the that the total amount sent matches the total amount received for each coin
 	// sum up input coins
 	sentMap := make(map[string]sdk.Int)
-	for _, input := range sf.CosmosMsgMultiSend.Inputs {
+	for _, input := range sf.MsgValue.Inputs {
 		for _, coin := range input.Coins {
 			if currentTotal, ok := sentMap[coin.Denom]; ok {
 				sentMap[coin.Denom] = currentTotal.Add(coin.Amount)
@@ -68,7 +68,7 @@ func (sf *WrapperMsgMultiSend) HandleMsg(msgType string, msg sdk.Msg, log *txMod
 
 	// sum up output coins
 	recievedMap := make(map[string]sdk.Int)
-	for _, output := range sf.CosmosMsgMultiSend.Outputs {
+	for _, output := range sf.MsgValue.Outputs {
 		for _, coin := range output.Coins {
 			if currentTotal, ok := recievedMap[coin.Denom]; ok {
 				recievedMap[coin.Denom] = currentTotal.Add(coin.Amount)
@@ -94,7 +94,7 @@ func (sf *WrapperMsgMultiSend) HandleMsg(msgType string, msg sdk.Msg, log *txMod
 
 func (sf *WrapperMsgSend) String() string {
 	return fmt.Sprintf("MsgSend: Address %s received %s from %s",
-		sf.CosmosMsgSend.ToAddress, sf.CosmosMsgSend.Amount, sf.CosmosMsgSend.FromAddress)
+		sf.MsgValue.ToAddress, sf.MsgValue.Amount, sf.MsgValue.FromAddress)
 }
 
 func (sf *WrapperMsgMultiSend) String() string {
@@ -106,12 +106,12 @@ func (sf *WrapperMsgMultiSend) String() string {
 }
 
 func (sf *WrapperMsgSend) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
-	relevantData := make([]parsingTypes.MessageRelevantInformation, len(sf.CosmosMsgSend.Amount))
+	relevantData := make([]parsingTypes.MessageRelevantInformation, len(sf.MsgValue.Amount))
 
-	for i, v := range sf.CosmosMsgSend.Amount {
+	for i, v := range sf.MsgValue.Amount {
 		var currRelevantData parsingTypes.MessageRelevantInformation
-		currRelevantData.SenderAddress = sf.CosmosMsgSend.FromAddress
-		currRelevantData.ReceiverAddress = sf.CosmosMsgSend.ToAddress
+		currRelevantData.SenderAddress = sf.MsgValue.FromAddress
+		currRelevantData.ReceiverAddress = sf.MsgValue.ToAddress
 		// Amount always seems to be an integer, float may be an extra uneeded step
 		currRelevantData.AmountSent = v.Amount.BigInt()
 		currRelevantData.DenominationSent = v.Denom
@@ -146,12 +146,12 @@ func (sf *WrapperMsgMultiSend) ParseRelevantData() (relevantData []parsingTypes.
 
 type WrapperMsgSend struct {
 	txModule.Message
-	CosmosMsgSend *bankTypes.MsgSend
+	MsgValue *bankTypes.MsgSend
 }
 
 type WrapperMsgMultiSend struct {
 	txModule.Message
-	CosmosMsgMultiSend    *bankTypes.MsgMultiSend
+	MsgValue              *bankTypes.MsgMultiSend
 	SenderReceiverAmounts []SenderReceiverAmount
 }
 

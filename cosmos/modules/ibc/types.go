@@ -47,7 +47,7 @@ const (
 
 type WrapperMsgRecvPacket struct {
 	txModule.Message
-	MsgRecvPacket   *chantypes.MsgRecvPacket
+	MsgValue        *chantypes.MsgRecvPacket
 	Sequence        uint64
 	SenderAddress   string
 	ReceiverAddress string
@@ -55,42 +55,42 @@ type WrapperMsgRecvPacket struct {
 	Denom           string
 }
 
-func (w *WrapperMsgRecvPacket) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
-	w.Type = msgType
-	w.MsgRecvPacket = msg.(*chantypes.MsgRecvPacket)
+func (sf *WrapperMsgRecvPacket) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.MsgValue = msg.(*chantypes.MsgRecvPacket)
 
 	// Confirm that the action listed in the message log matches the Message type
-	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
 	// Unmarshal the json encoded packet data so we can access sender, receiver and denom info
 	var data types.FungibleTokenPacketData
-	if err := types.ModuleCdc.UnmarshalJSON(w.MsgRecvPacket.Packet.GetData(), &data); err != nil {
+	if err := types.ModuleCdc.UnmarshalJSON(sf.MsgValue.Packet.GetData(), &data); err != nil {
 		// If there was a failure then this recv was not for a token transfer packet,
 		// currently we only consider successful token transfers taxable events.
 		return nil
 	}
 
-	w.SenderAddress = data.Sender
-	w.ReceiverAddress = data.Receiver
-	w.Sequence = w.MsgRecvPacket.Packet.Sequence
+	sf.SenderAddress = data.Sender
+	sf.ReceiverAddress = data.Receiver
+	sf.Sequence = sf.MsgValue.Packet.Sequence
 
 	amount, ok := stdTypes.NewIntFromString(data.Amount)
 	if !ok {
 		return fmt.Errorf("failed to convert denom amount to sdk.Int, got(%s)", data.Amount)
 	}
 
-	w.Amount = amount
-	w.Denom = data.Denom
+	sf.Amount = amount
+	sf.Denom = data.Denom
 
 	return nil
 }
 
-func (w *WrapperMsgRecvPacket) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+func (sf *WrapperMsgRecvPacket) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	// This prevents the item from being indexed
-	if w.Amount.IsNil() {
+	if sf.Amount.IsNil() {
 		return nil
 	}
 
@@ -98,58 +98,58 @@ func (w *WrapperMsgRecvPacket) ParseRelevantData() []parsingTypes.MessageRelevan
 	amountSent := stdTypes.NewInt(0)
 
 	return []parsingTypes.MessageRelevantInformation{{
-		SenderAddress:        w.SenderAddress,
-		ReceiverAddress:      w.ReceiverAddress,
+		SenderAddress:        sf.SenderAddress,
+		ReceiverAddress:      sf.ReceiverAddress,
 		AmountSent:           amountSent.BigInt(),
-		AmountReceived:       w.Amount.BigInt(),
+		AmountReceived:       sf.Amount.BigInt(),
 		DenominationSent:     "",
-		DenominationReceived: w.Denom,
+		DenominationReceived: sf.Denom,
 	}}
 }
 
-func (w *WrapperMsgRecvPacket) String() string {
-	if w.Amount.IsNil() {
+func (sf *WrapperMsgRecvPacket) String() string {
+	if sf.Amount.IsNil() {
 		return "MsgRecvPacket: IBC transfer was not a FungibleTokenTransfer"
 	}
-	return fmt.Sprintf("MsgRecvPacket: IBC transfer of %s%s from %s to %s", w.Amount, w.Denom, w.SenderAddress, w.ReceiverAddress)
+	return fmt.Sprintf("MsgRecvPacket: IBC transfer of %s%s from %s to %s", sf.Amount, sf.Denom, sf.SenderAddress, sf.ReceiverAddress)
 }
 
 type WrapperMsgAcknowledgement struct {
 	txModule.Message
-	MsgAcknowledgement *chantypes.MsgAcknowledgement
-	Sequence           uint64
-	SenderAddress      string
-	ReceiverAddress    string
-	Amount             stdTypes.Int
-	Denom              string
-	AckType            int
-	AckResult          int
+	MsgValue        *chantypes.MsgAcknowledgement
+	Sequence        uint64
+	SenderAddress   string
+	ReceiverAddress string
+	Amount          stdTypes.Int
+	Denom           string
+	AckType         int
+	AckResult       int
 }
 
-func (w *WrapperMsgAcknowledgement) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
-	w.Type = msgType
-	w.MsgAcknowledgement = msg.(*chantypes.MsgAcknowledgement)
+func (sf *WrapperMsgAcknowledgement) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.MsgValue = msg.(*chantypes.MsgAcknowledgement)
 
 	// Confirm that the action listed in the message log matches the Message type
-	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
 	// Unmarshal the json encoded packet data so we can access sender, receiver and denom info
 	var data types.FungibleTokenPacketData
-	if err := types.ModuleCdc.UnmarshalJSON(w.MsgAcknowledgement.Packet.GetData(), &data); err != nil {
+	if err := types.ModuleCdc.UnmarshalJSON(sf.MsgValue.Packet.GetData(), &data); err != nil {
 		// If there was a failure then this ack was not for a token transfer packet,
 		// currently we only consider successful token transfers taxable events.
-		w.AckType = AckNotFungibleTokenTransfer
+		sf.AckType = AckNotFungibleTokenTransfer
 		return nil
 	}
 
-	w.AckType = AckFungibleTokenTransfer
+	sf.AckType = AckFungibleTokenTransfer
 
-	w.SenderAddress = data.Sender
-	w.ReceiverAddress = data.Receiver
-	w.Sequence = w.MsgAcknowledgement.Packet.Sequence
+	sf.SenderAddress = data.Sender
+	sf.ReceiverAddress = data.Receiver
+	sf.Sequence = sf.MsgValue.Packet.Sequence
 
 	amount, ok := stdTypes.NewIntFromString(data.Amount)
 	if !ok {
@@ -159,27 +159,27 @@ func (w *WrapperMsgAcknowledgement) HandleMsg(msgType string, msg stdTypes.Msg, 
 	// Acknowledgements can contain an error & we only want to index successful acks,
 	// so we need to check the ack bytes to determine if it was a result or an error.
 	var ack chantypes.Acknowledgement
-	if err := types.ModuleCdc.UnmarshalJSON(w.MsgAcknowledgement.Acknowledgement, &ack); err != nil {
+	if err := types.ModuleCdc.UnmarshalJSON(sf.MsgValue.Acknowledgement, &ack); err != nil {
 		return fmt.Errorf("cannot unmarshal ICS-20 transfer packet acknowledgement: %v", err)
 	}
 
 	switch ack.Response.(type) {
 	case *chantypes.Acknowledgement_Error:
 		// We index nothing on Acknowledgement errors
-		w.AckResult = AckFailure
+		sf.AckResult = AckFailure
 		return nil
 	default:
 		// the acknowledgement succeeded on the receiving chain
-		w.AckResult = AckSuccess
-		w.Amount = amount
-		w.Denom = data.Denom
+		sf.AckResult = AckSuccess
+		sf.Amount = amount
+		sf.Denom = data.Denom
 		return nil
 	}
 }
 
-func (w *WrapperMsgAcknowledgement) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+func (sf *WrapperMsgAcknowledgement) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	// This prevents the item from being indexed
-	if w.Amount.IsNil() || w.AckType == AckNotFungibleTokenTransfer || w.AckResult == AckFailure {
+	if sf.Amount.IsNil() || sf.AckType == AckNotFungibleTokenTransfer || sf.AckResult == AckFailure {
 		return nil
 	}
 
@@ -188,11 +188,11 @@ func (w *WrapperMsgAcknowledgement) ParseRelevantData() []parsingTypes.MessageRe
 	amountReceived := stdTypes.NewInt(0)
 
 	return []parsingTypes.MessageRelevantInformation{{
-		SenderAddress:        w.SenderAddress,
-		ReceiverAddress:      w.ReceiverAddress,
-		AmountSent:           w.Amount.BigInt(),
+		SenderAddress:        sf.SenderAddress,
+		ReceiverAddress:      sf.ReceiverAddress,
+		AmountSent:           sf.Amount.BigInt(),
 		AmountReceived:       amountReceived.BigInt(),
-		DenominationSent:     w.Denom,
+		DenominationSent:     sf.Denom,
 		DenominationReceived: "",
 	}}
 }
@@ -215,32 +215,32 @@ func (w *WrapperMsgAcknowledgement) String() string {
 
 type WrapperMsgUpdateClient struct {
 	txModule.Message
-	MsgUpdateClient *clitypes.MsgUpdateClient
+	MsgValue *clitypes.MsgUpdateClient
 }
 
-func (w *WrapperMsgUpdateClient) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
-	w.Type = msgType
-	w.MsgUpdateClient = msg.(*clitypes.MsgUpdateClient)
+func (sf *WrapperMsgUpdateClient) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.MsgValue = msg.(*clitypes.MsgUpdateClient)
 
 	// Confirm that the action listed in the message log matches the Message type
-	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
 
 	// Set field Header of type types.any to nil
 	// elseway, it triggers an error while marshalling to json
-	w.MsgUpdateClient.Header = nil
+	sf.MsgValue.Header = nil
 
 	return nil
 }
 
-func (w *WrapperMsgUpdateClient) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+func (sf *WrapperMsgUpdateClient) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	var relevantData []parsingTypes.MessageRelevantInformation
 
 	currRelevantData := parsingTypes.MessageRelevantInformation{
-		SenderAddress:        w.MsgUpdateClient.ClientId,
-		ReceiverAddress:      w.MsgUpdateClient.Signer,
+		SenderAddress:        sf.MsgValue.ClientId,
+		ReceiverAddress:      sf.MsgValue.Signer,
 		AmountSent:           nil,
 		AmountReceived:       nil,
 		DenominationSent:     "",
@@ -252,21 +252,21 @@ func (w *WrapperMsgUpdateClient) ParseRelevantData() []parsingTypes.MessageRelev
 	return relevantData
 }
 
-func (w *WrapperMsgUpdateClient) String() string {
-	return fmt.Sprintf("WrapperMsgUpdateClient: ClientID=%s, SignerAddress=%s", w.MsgUpdateClient.ClientId, w.MsgUpdateClient.Signer)
+func (sf *WrapperMsgUpdateClient) String() string {
+	return fmt.Sprintf("WrapperMsgUpdateClient: ClientID=%s, SignerAddress=%s", sf.MsgValue.ClientId, sf.MsgValue.Signer)
 }
 
 type WrapperMsgTransfer struct {
 	txModule.Message
-	MsgTransfer *trantypes.MsgTransfer
+	MsgValue *trantypes.MsgTransfer
 }
 
-func (w *WrapperMsgTransfer) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
-	w.Type = msgType
-	w.MsgTransfer = msg.(*trantypes.MsgTransfer)
+func (sf *WrapperMsgTransfer) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.MsgValue = msg.(*trantypes.MsgTransfer)
 
 	// Confirm that the action listed in the message log matches the Message type
-	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
@@ -274,15 +274,15 @@ func (w *WrapperMsgTransfer) HandleMsg(msgType string, msg stdTypes.Msg, log *tx
 	return nil
 }
 
-func (w *WrapperMsgTransfer) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+func (sf *WrapperMsgTransfer) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	var relevantData []parsingTypes.MessageRelevantInformation
 
 	currRelevantData := parsingTypes.MessageRelevantInformation{
-		SenderAddress:        w.MsgTransfer.Sender,
-		ReceiverAddress:      w.MsgTransfer.Receiver,
+		SenderAddress:        sf.MsgValue.Sender,
+		ReceiverAddress:      sf.MsgValue.Receiver,
 		AmountSent:           nil,
 		AmountReceived:       nil,
-		DenominationSent:     w.MsgTransfer.Token.Denom,
+		DenominationSent:     sf.MsgValue.Token.Denom,
 		DenominationReceived: "",
 	}
 
@@ -291,7 +291,7 @@ func (w *WrapperMsgTransfer) ParseRelevantData() []parsingTypes.MessageRelevantI
 	return relevantData
 }
 
-func (w *WrapperMsgTransfer) String() string {
+func (sf *WrapperMsgTransfer) String() string {
 	return fmt.Sprintf("WrapperMsgTransfer: SourcePort=%s, SourceChannel=%s, Token=%v, Sender=%s, Receiver=%s, TimeoutHeight=%v, TimeoutTimestamp=%d, Memo=%s",
-		w.MsgTransfer.SourcePort, w.MsgTransfer.SourceChannel, w.MsgTransfer.Token, w.MsgTransfer.Sender, w.MsgTransfer.Receiver, w.MsgTransfer.TimeoutHeight, w.MsgTransfer.TimeoutTimestamp, w.MsgTransfer.Memo)
+		sf.MsgValue.SourcePort, sf.MsgValue.SourceChannel, sf.MsgValue.Token, sf.MsgValue.Sender, sf.MsgValue.Receiver, sf.MsgValue.TimeoutHeight, sf.MsgValue.TimeoutTimestamp, sf.MsgValue.Memo)
 }

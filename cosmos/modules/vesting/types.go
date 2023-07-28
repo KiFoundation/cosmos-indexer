@@ -18,15 +18,15 @@ const (
 
 type WrapperMsgCreateVestingAccount struct {
 	txModule.Message
-	MsgCreateVestingAccount *vestingTypes.MsgCreateVestingAccount
+	MsgValue *vestingTypes.MsgCreateVestingAccount
 }
 
-func (w *WrapperMsgCreateVestingAccount) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
-	w.Type = msgType
-	w.MsgCreateVestingAccount = msg.(*vestingTypes.MsgCreateVestingAccount)
+func (sf *WrapperMsgCreateVestingAccount) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.MsgValue = msg.(*vestingTypes.MsgCreateVestingAccount)
 
 	// Confirm that the action listed in the message log matches the Message type
-	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
@@ -34,13 +34,13 @@ func (w *WrapperMsgCreateVestingAccount) HandleMsg(msgType string, msg stdTypes.
 	return nil
 }
 
-func (w *WrapperMsgCreateVestingAccount) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+func (sf *WrapperMsgCreateVestingAccount) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	var relevantData []parsingTypes.MessageRelevantInformation
 
 	// Extract data from the MsgCreateVestingAccount and populate the relevant fields in MessageRelevantInformation struct.
 	currRelevantData := parsingTypes.MessageRelevantInformation{
-		SenderAddress:        w.MsgCreateVestingAccount.FromAddress,
-		ReceiverAddress:      w.MsgCreateVestingAccount.ToAddress,
+		SenderAddress:        sf.MsgValue.FromAddress,
+		ReceiverAddress:      sf.MsgValue.ToAddress,
 		AmountSent:           nil, // Set to nil as we don't have this data in MsgCreateVestingAccount
 		AmountReceived:       nil, // Set to nil as we don't have this data in MsgCreateVestingAccount
 		DenominationSent:     "",  // Set to empty string as we don't have this data in MsgCreateVestingAccount
@@ -52,8 +52,8 @@ func (w *WrapperMsgCreateVestingAccount) ParseRelevantData() []parsingTypes.Mess
 	return relevantData
 }
 
-func (w *WrapperMsgCreateVestingAccount) String() string {
+func (sf *WrapperMsgCreateVestingAccount) String() string {
 	return fmt.Sprintf("WrapperMsgCreateVestingAccount: FromAddress=%s, ToAddress=%s, Amount=%v, EndTime=%d, Delayed=%v",
-		w.MsgCreateVestingAccount.FromAddress, w.MsgCreateVestingAccount.ToAddress, w.MsgCreateVestingAccount.Amount,
-		w.MsgCreateVestingAccount.EndTime, w.MsgCreateVestingAccount.Delayed)
+		sf.MsgValue.FromAddress, sf.MsgValue.ToAddress, sf.MsgValue.Amount,
+		sf.MsgValue.EndTime, sf.MsgValue.Delayed)
 }

@@ -20,18 +20,18 @@ const (
 
 type WrapperMsgExec struct {
 	txModule.Message
-	MsgExec *authzTypes.MsgExec
+	MsgValue *authzTypes.MsgExec
 }
 
-func (w *WrapperMsgExec) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
-	w.Type = msgType
-	w.MsgExec = msg.(*authzTypes.MsgExec)
+func (sf *WrapperMsgExec) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.MsgValue = msg.(*authzTypes.MsgExec)
 
 	// Setting Msgs to nil as it is of types.any and will trigger error at marshalling
-	w.MsgExec.Msgs = nil
+	sf.MsgValue.Msgs = nil
 
 	// Confirm that the action listed in the message log matches the Message type
-	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
@@ -39,13 +39,13 @@ func (w *WrapperMsgExec) HandleMsg(msgType string, msg stdTypes.Msg, log *txModu
 	return nil
 }
 
-func (w *WrapperMsgExec) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+func (sf *WrapperMsgExec) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	var relevantData []parsingTypes.MessageRelevantInformation
 
 	// Extract data from the MsgExec and populate the relevant fields in MessageRelevantInformation struct.
 	currRelevantData := parsingTypes.MessageRelevantInformation{
 		SenderAddress:        "", // Fill in with the sender address if available
-		ReceiverAddress:      w.MsgExec.Grantee,
+		ReceiverAddress:      sf.MsgValue.Grantee,
 		AmountSent:           nil, // Set to nil as we don't have this data in MsgExec
 		AmountReceived:       nil, // Set to nil as we don't have this data in MsgExec
 		DenominationSent:     "",  // Set to empty string as we don't have this data in MsgExec
@@ -57,24 +57,24 @@ func (w *WrapperMsgExec) ParseRelevantData() []parsingTypes.MessageRelevantInfor
 	return relevantData
 }
 
-func (w *WrapperMsgExec) String() string {
-	return fmt.Sprintf("WrapperMsgExec: Grantee=%s, Msgs=%v", w.MsgExec.Grantee, w.MsgExec.Msgs)
+func (sf *WrapperMsgExec) String() string {
+	return fmt.Sprintf("WrapperMsgExec: Grantee=%s, Msgs=%v", sf.MsgValue.Grantee, sf.MsgValue.Msgs)
 }
 
 type WrapperMsgGrant struct {
 	txModule.Message
-	MsgGrant *authzTypes.MsgGrant
+	MsgValue *authzTypes.MsgGrant
 }
 
-func (w *WrapperMsgGrant) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
-	w.Type = msgType
-	w.MsgGrant = msg.(*authzTypes.MsgGrant)
+func (sf *WrapperMsgGrant) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.MsgValue = msg.(*authzTypes.MsgGrant)
 
 	// Removing types.any field to avoid error
-	w.MsgGrant.Grant.Authorization = nil
+	sf.MsgValue.Grant.Authorization = nil
 
 	// Confirm that the action listed in the message log matches the Message type
-	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
@@ -82,13 +82,13 @@ func (w *WrapperMsgGrant) HandleMsg(msgType string, msg stdTypes.Msg, log *txMod
 	return nil
 }
 
-func (w *WrapperMsgGrant) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+func (sf *WrapperMsgGrant) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	var relevantData []parsingTypes.MessageRelevantInformation
 
 	// Extract data from the MsgGrant and populate the relevant fields in MessageRelevantInformation struct.
 	currRelevantData := parsingTypes.MessageRelevantInformation{
-		SenderAddress:        w.MsgGrant.Granter,
-		ReceiverAddress:      w.MsgGrant.Grantee,
+		SenderAddress:        sf.MsgValue.Granter,
+		ReceiverAddress:      sf.MsgValue.Grantee,
 		AmountSent:           nil, // Set to nil as we don't have this data in MsgGrant
 		AmountReceived:       nil, // Set to nil as we don't have this data in MsgGrant
 		DenominationSent:     "",  // Set to empty string as we don't have this data in MsgGrant
@@ -100,21 +100,21 @@ func (w *WrapperMsgGrant) ParseRelevantData() []parsingTypes.MessageRelevantInfo
 	return relevantData
 }
 
-func (w *WrapperMsgGrant) String() string {
-	return fmt.Sprintf("WrapperMsgGrant: Granter=%s, Grantee=%s, Grant=%v", w.MsgGrant.Granter, w.MsgGrant.Grantee, w.MsgGrant.Grant)
+func (sf *WrapperMsgGrant) String() string {
+	return fmt.Sprintf("WrapperMsgGrant: Granter=%s, Grantee=%s, Grant=%v", sf.MsgValue.Granter, sf.MsgValue.Grantee, sf.MsgValue.Grant)
 }
 
 type WrapperMsgRevoke struct {
 	txModule.Message
-	MsgRevoke *authzTypes.MsgRevoke
+	MsgValue *authzTypes.MsgRevoke
 }
 
-func (w *WrapperMsgRevoke) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
-	w.Type = msgType
-	w.MsgRevoke = msg.(*authzTypes.MsgRevoke)
+func (sf *WrapperMsgRevoke) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.MsgValue = msg.(*authzTypes.MsgRevoke)
 
 	// Confirm that the action listed in the message log matches the Message type
-	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
@@ -122,13 +122,13 @@ func (w *WrapperMsgRevoke) HandleMsg(msgType string, msg stdTypes.Msg, log *txMo
 	return nil
 }
 
-func (w *WrapperMsgRevoke) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+func (sf *WrapperMsgRevoke) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	var relevantData []parsingTypes.MessageRelevantInformation
 
 	// Extract data from the MsgRevoke and populate the relevant fields in MessageRelevantInformation struct.
 	currRelevantData := parsingTypes.MessageRelevantInformation{
-		SenderAddress:        w.MsgRevoke.Granter,
-		ReceiverAddress:      w.MsgRevoke.Grantee,
+		SenderAddress:        sf.MsgValue.Granter,
+		ReceiverAddress:      sf.MsgValue.Grantee,
 		AmountSent:           nil, // Set to nil as we don't have this data in MsgRevoke
 		AmountReceived:       nil, // Set to nil as we don't have this data in MsgRevoke
 		DenominationSent:     "",  // Set to empty string as we don't have this data in MsgRevoke
@@ -140,6 +140,6 @@ func (w *WrapperMsgRevoke) ParseRelevantData() []parsingTypes.MessageRelevantInf
 	return relevantData
 }
 
-func (w *WrapperMsgRevoke) String() string {
-	return fmt.Sprintf("WrapperMsgRevoke: Granter=%s, Grantee=%s, MsgTypeUrl=%s", w.MsgRevoke.Granter, w.MsgRevoke.Grantee, w.MsgRevoke.MsgTypeUrl)
+func (sf *WrapperMsgRevoke) String() string {
+	return fmt.Sprintf("WrapperMsgRevoke: Granter=%s, Grantee=%s, MsgTypeUrl=%s", sf.MsgValue.Granter, sf.MsgValue.Grantee, sf.MsgValue.MsgTypeUrl)
 }
