@@ -17,15 +17,15 @@ const (
 
 type WrapperMsgExecuteContract struct {
 	txModule.Message
-	MsgExecuteContract *wasmTypes.MsgExecuteContract
+	MsgValue *wasmTypes.MsgExecuteContract
 }
 
-func (w *WrapperMsgExecuteContract) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
-	w.Type = msgType
-	w.MsgExecuteContract = msg.(*wasmTypes.MsgExecuteContract)
+func (sf *WrapperMsgExecuteContract) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.MsgValue = msg.(*wasmTypes.MsgExecuteContract)
 
 	// Confirm that the action listed in the message log matches the Message type
-	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
@@ -33,15 +33,15 @@ func (w *WrapperMsgExecuteContract) HandleMsg(msgType string, msg stdTypes.Msg, 
 	return nil
 }
 
-func (w *WrapperMsgExecuteContract) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+func (sf *WrapperMsgExecuteContract) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	var relevantData []parsingTypes.MessageRelevantInformation
 
 	currRelevantData := parsingTypes.MessageRelevantInformation{
-		SenderAddress:        w.MsgExecuteContract.Sender,
-		ReceiverAddress:      w.MsgExecuteContract.Contract,
+		SenderAddress:        sf.MsgValue.Sender,
+		ReceiverAddress:      sf.MsgValue.Contract,
 		AmountSent:           nil,
 		AmountReceived:       nil,
-		DenominationSent:     w.MsgExecuteContract.Funds.String(),
+		DenominationSent:     sf.MsgValue.Funds.String(),
 		DenominationReceived: "",
 	}
 
@@ -50,22 +50,22 @@ func (w *WrapperMsgExecuteContract) ParseRelevantData() []parsingTypes.MessageRe
 	return relevantData
 }
 
-func (w *WrapperMsgExecuteContract) String() string {
+func (sf *WrapperMsgExecuteContract) String() string {
 	return fmt.Sprintf("WrapperMsgExecuteContract: Sender=%s, Contract=%s, Msg=%v, Funds=%v",
-		w.MsgExecuteContract.Sender, w.MsgExecuteContract.Contract, w.MsgExecuteContract.Msg, w.MsgExecuteContract.Funds.String())
+		sf.MsgValue.Sender, sf.MsgValue.Contract, sf.MsgValue.Msg, sf.MsgValue.Funds.String())
 }
 
 type WrapperMsgInstantiateContract struct {
 	txModule.Message
-	MsgInstantiateContract *wasmTypes.MsgInstantiateContract
+	MsgValue *wasmTypes.MsgInstantiateContract
 }
 
-func (w *WrapperMsgInstantiateContract) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
-	w.Type = msgType
-	w.MsgInstantiateContract = msg.(*wasmTypes.MsgInstantiateContract)
+func (sf *WrapperMsgInstantiateContract) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.MsgValue = msg.(*wasmTypes.MsgInstantiateContract)
 
 	// Confirm that the action listed in the message log matches the Message type
-	validLog := txModule.IsMessageActionEquals(w.GetType(), log)
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
 	if !validLog {
 		return util.ReturnInvalidLog(msgType, log)
 	}
@@ -73,15 +73,15 @@ func (w *WrapperMsgInstantiateContract) HandleMsg(msgType string, msg stdTypes.M
 	return nil
 }
 
-func (w *WrapperMsgInstantiateContract) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+func (sf *WrapperMsgInstantiateContract) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
 	var relevantData []parsingTypes.MessageRelevantInformation
 
 	currRelevantData := parsingTypes.MessageRelevantInformation{
-		SenderAddress:        w.MsgInstantiateContract.Sender,
-		ReceiverAddress:      w.MsgInstantiateContract.Admin,
+		SenderAddress:        sf.MsgValue.Sender,
+		ReceiverAddress:      sf.MsgValue.Admin,
 		AmountSent:           nil,
 		AmountReceived:       nil,
-		DenominationSent:     w.MsgInstantiateContract.Funds.String(),
+		DenominationSent:     sf.MsgValue.Funds.String(),
 		DenominationReceived: "",
 	}
 
@@ -90,8 +90,8 @@ func (w *WrapperMsgInstantiateContract) ParseRelevantData() []parsingTypes.Messa
 	return relevantData
 }
 
-func (w *WrapperMsgInstantiateContract) String() string {
+func (sf *WrapperMsgInstantiateContract) String() string {
 	return fmt.Sprintf("WrapperMsgInstantiateContract: Sender=%s, Admin=%s, CodeID=%d, Label=%s, Msg=%v, Funds=%v",
-		w.MsgInstantiateContract.Sender, w.MsgInstantiateContract.Admin, w.MsgInstantiateContract.CodeID,
-		w.MsgInstantiateContract.Label, w.MsgInstantiateContract.Msg, w.MsgInstantiateContract.Funds.String())
+		sf.MsgValue.Sender, sf.MsgValue.Admin, sf.MsgValue.CodeID,
+		sf.MsgValue.Label, sf.MsgValue.Msg, sf.MsgValue.Funds.String())
 }

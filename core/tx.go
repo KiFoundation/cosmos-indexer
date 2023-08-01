@@ -218,7 +218,12 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 	}
 
 	// Retrieving interesting data from the MsgWrapper
-	messageValue = extractedValue["MsgValue"].(map[string]interface{})
+	if extractedValue["MsgValue"] != nil {
+		messageValue = extractedValue["MsgValue"].(map[string]interface{})
+		delete(extractedValue, "MsgValue")
+	} else {
+		messageValue = make(map[string]interface{})
+	}
 	delete(extractedValue, "MsgValue")
 	for key, value := range extractedValue {
 		if key != "@type" {
