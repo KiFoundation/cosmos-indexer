@@ -79,6 +79,7 @@ type Message struct {
 	MessageType   MessageType
 	MessageIndex  int
 	MessageValue  JSONB `gorm:"type:jsonb"`
+	MessageEvents JSONB `gorm:"type:jsonb"`
 }
 
 const (
@@ -200,7 +201,7 @@ type Epoch struct {
 }
 
 // Creating a JSONB type for later gorm database insertion
-type JSONB []interface{}
+type JSONB map[string]interface{}
 
 // Value Marshal
 func (a JSONB) Value() (driver.Value, error) {

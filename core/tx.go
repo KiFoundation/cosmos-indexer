@@ -46,14 +46,26 @@ var messageTypeHandler = map[string][]func() txtypes.CosmosMessage{
 	distribution.MsgWithdrawDelegatorReward:     {func() txtypes.CosmosMessage { return &distribution.WrapperMsgWithdrawDelegatorReward{} }},
 	distribution.MsgWithdrawValidatorCommission: {func() txtypes.CosmosMessage { return &distribution.WrapperMsgWithdrawValidatorCommission{} }},
 	distribution.MsgFundCommunityPool:           {func() txtypes.CosmosMessage { return &distribution.WrapperMsgFundCommunityPool{} }},
+	distribution.MsgSetWithdrawAddress:          {func() txtypes.CosmosMessage { return &distribution.WrapperMsgSetWithdrawAddress{} }},
 	gov.MsgDeposit:                              {func() txtypes.CosmosMessage { return &gov.WrapperMsgDeposit{} }},
 	gov.MsgSubmitProposal:                       {func() txtypes.CosmosMessage { return &gov.WrapperMsgSubmitProposal{} }},
+	gov.MsgVote:                                 {func() txtypes.CosmosMessage { return &gov.WrapperMsgVote{} }},
+	gov.MsgVoteWeighted:                         {func() txtypes.CosmosMessage { return &gov.WrapperMsgVoteWeighted{} }},
 	staking.MsgDelegate:                         {func() txtypes.CosmosMessage { return &staking.WrapperMsgDelegate{} }},
 	staking.MsgUndelegate:                       {func() txtypes.CosmosMessage { return &staking.WrapperMsgUndelegate{} }},
 	staking.MsgBeginRedelegate:                  {func() txtypes.CosmosMessage { return &staking.WrapperMsgBeginRedelegate{} }},
+	staking.MsgCreateValidator:                  {func() txtypes.CosmosMessage { return &staking.WrapperMsgCreateValidator{} }},
+	staking.MsgEditValidator:                    {func() txtypes.CosmosMessage { return &staking.WrapperMsgEditValidator{} }},
 	ibc.MsgRecvPacket:                           {func() txtypes.CosmosMessage { return &ibc.WrapperMsgRecvPacket{} }},
 	ibc.MsgAcknowledgement:                      {func() txtypes.CosmosMessage { return &ibc.WrapperMsgAcknowledgement{} }},
+	ibc.MsgTransfer:                             {func() txtypes.CosmosMessage { return &ibc.WrapperMsgTransfer{} }},
 	ibc.MsgUpdateClient:                         {func() txtypes.CosmosMessage { return &ibc.WrapperMsgUpdateClient{} }},
+	wasm.MsgExecuteContract:                     {func() txtypes.CosmosMessage { return &wasm.WrapperMsgExecuteContract{} }},
+	wasm.MsgInstantiateContract:                 {func() txtypes.CosmosMessage { return &wasm.WrapperMsgInstantiateContract{} }},
+	authz.MsgExec:                               {func() txtypes.CosmosMessage { return &authz.WrapperMsgExec{} }},
+	authz.MsgGrant:                              {func() txtypes.CosmosMessage { return &authz.WrapperMsgGrant{} }},
+	authz.MsgRevoke:                             {func() txtypes.CosmosMessage { return &authz.WrapperMsgRevoke{} }},
+	vesting.MsgCreateVestingAccount:             {func() txtypes.CosmosMessage { return &vesting.WrapperMsgCreateVestingAccount{} }},
 }
 
 // These messages are ignored for tax purposes.
@@ -63,16 +75,16 @@ var messageTypeIgnorer = map[string]interface{}{
 	/////// Nontaxable Events ///////
 	/////////////////////////////////
 	// Authz module actions are not taxable
-	authz.MsgExec:   nil,
-	authz.MsgGrant:  nil,
-	authz.MsgRevoke: nil,
+	// authz.MsgExec:   nil,
+	// authz.MsgGrant:  nil,
+	// authz.MsgRevoke: nil,
 	// Making a config change is not taxable
-	distribution.MsgSetWithdrawAddress: nil,
+	// distribution.MsgSetWithdrawAddress: nil,
 	// Voting is not taxable
-	gov.MsgVote: nil,
+	// gov.MsgVote: nil,
 	// The IBC msgs below do not create taxable events
-	ibc.MsgTransfer: nil,
-	//ibc.MsgUpdateClient:          nil,
+	// ibc.MsgTransfer:              nil,
+	// ibc.MsgUpdateClient:          nil,
 	ibc.MsgTimeout:               nil,
 	ibc.MsgTimeoutOnClose:        nil,
 	ibc.MsgCreateClient:          nil,
@@ -97,8 +109,8 @@ var messageTypeIgnorer = map[string]interface{}{
 	slashing.MsgUnjail:       nil,
 	slashing.MsgUpdateParams: nil,
 	// Creating and editing validator is not taxable
-	staking.MsgCreateValidator: nil,
-	staking.MsgEditValidator:   nil,
+	// staking.MsgCreateValidator: nil,
+	// staking.MsgEditValidator:   nil,
 	// Delegating and Locking are not taxable
 	superfluid.MsgSuperfluidDelegate:        nil,
 	superfluid.MsgSuperfluidUndelegate:      nil,
@@ -106,7 +118,7 @@ var messageTypeIgnorer = map[string]interface{}{
 	superfluid.MsgLockAndSuperfluidDelegate: nil,
 	superfluid.MsgUnPoolWhitelistedPool:     nil,
 	// Create account is not taxable
-	vesting.MsgCreateVestingAccount: nil,
+	// vesting.MsgCreateVestingAccount: nil,
 
 	// Tendermint Liquidity messages are actually executed in batches during periodic EndBlocker events
 	// We ignore the Message types since the actual taxable events happen later, and the messages can fail/be refunded
@@ -119,8 +131,8 @@ var messageTypeIgnorer = map[string]interface{}{
 	/////// Taxable Events, future work ///////
 	///////////////////////////////////////////
 	// CosmWasm
-	wasm.MsgExecuteContract:     nil,
-	wasm.MsgInstantiateContract: nil,
+	// wasm.MsgExecuteContract:     nil,
+	// wasm.MsgInstantiateContract: nil,
 }
 
 // Testing if a string slice contains given val
@@ -149,23 +161,47 @@ func ChainSpecificMessageTypeHandlerBootstrap(chainID string) {
 	}
 }
 
+// Convert a struct into a map[string]interface{}
+func toJSONB(input interface{}) dbTypes.JSONB {
+	result := make(dbTypes.JSONB)
+	v := reflect.ValueOf(input)
+	if v.Kind() == reflect.Struct {
+		typeOfT := v.Type()
+		for i := 0; i < v.NumField(); i++ {
+			field := v.Field(i)
+			result[typeOfT.Field(i).Name] = field.Interface()
+		}
+	}
+	return result
+}
+
 // ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
-func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.CosmosMessage, string, error, dbTypes.JSONB) {
+func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.CosmosMessage, string, error, dbTypes.JSONB, dbTypes.JSONB) {
 	var ok bool
 	var err error
 	var msgHandler txtypes.CosmosMessage
 	var handlerList []func() txtypes.CosmosMessage
-	var messageValue dbTypes.JSONB
 
 	// Figure out what type of Message this is based on the '@type' field that is included
 	// in every Cosmos Message (can be seen in raw JSON for any cosmos transaction).
 	cosmosMessage := txtypes.Message{}
 	cosmosMessage.Type = types.MsgTypeURL(message)
 
+	var extractedValue dbTypes.JSONB
+	var messageValue dbTypes.JSONB
+	var jsonMsgValue []byte
+	var marshalingError error
+
+	// Retrieve the message raw value and convert it to jsonb for future gorm insertion
+	messageValue = nil
+	marshalingError = nil
+
 	// So far we only parsed the '@type' field. Now we get a struct for that specific type.
 	if handlerList, ok = messageTypeHandler[cosmosMessage.Type]; !ok {
 		msgHandler = nil
 		err = txtypes.ErrUnknownMessage
+		// Parsing raw messages when no appropriate handler is available
+		jsonMsgValue, marshalingError = json.Marshal(message)
 	} else {
 		for _, handlerFunc := range handlerList {
 			// Unmarshal the rest of the JSON now that we know the specific type.
@@ -178,69 +214,40 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 				break
 			}
 		}
+
+		// Fetching handler parsed data when there is an appropriate handler for the message type
+		jsonMsgValue, marshalingError = json.Marshal(msgHandler)
 	}
 
-	// Retrieve the message raw value and convert it to jsonb for future gorm insertion
-	messageValue = nil
-	// Appending MsgValue to currMessage depending on the message type
-	// Some messages types might not be supported for marshaling operations, exclude those here
-	excludedMsgTypes := []string{
-		"/ibc.core.client.v1.MsgUpdateClient",
+	if marshalingError != nil {
+		config.Log.Error("Error marshaling to JSON:", err)
 	}
 
-	// Some messages types might be convenient to parse using already implemented handleMsg functions
-	supportedMsgTypes := []string{
-		//"/cosmos.bank.v1beta1.MsgSend",
-		"/ibc.core.channel.v1.MsgRecvPacket",
-		"/ibc.core.channel.v1.MsgAcknowledgement",
-		//"/ibc.core.client.v1.MsgUpdateClient",
-		"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward",
+	// Unmarshal the raw message into the map
+	// marshalingError = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
+	marshalingError = json.Unmarshal(jsonMsgValue, &extractedValue)
+	if marshalingError != nil {
+		config.Log.Error("Error unmarshaling to JSONB:", err)
 	}
 
-	// Skipping message types that are not properly handled and can cause errors
-	if !contains(excludedMsgTypes, cosmosMessage.Type) {
-		// Checking if we should use the data parsed by the handler or the raw data
-		if contains(supportedMsgTypes, cosmosMessage.Type) {
-			// Fetching handler parsed data when there is an appropriate handler for the message type
-			jsonMsgValue, marshalingError := json.Marshal(msgHandler.ParseRelevantData())
-			if marshalingError != nil {
-				config.Log.Error("Error marshaling to JSON:", err)
-			}
-
-			// Create a map to hold the JSON data
-			var jsonbMsgValue dbTypes.JSONB
-
-			// Unmarshal the raw message into the map
-			marshalingError = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
-			if marshalingError != nil {
-				config.Log.Error("Error unmarshaling to JSONB:", err)
-			}
-
-			messageValue = jsonbMsgValue
-		} else {
-			// Parsing raw messages when no appropriate handler is available
-			jsonMsgValue, marshalingError := json.Marshal(message)
-			if marshalingError != nil {
-				config.Log.Error("Error marshaling to JSON:", err)
-			}
-
-			// Create a map to hold the JSON data
-			var jsonbMsgValue interface{}
-
-			// Unmarshal the raw message into the map
-			marshalingError = json.Unmarshal(jsonMsgValue, &jsonbMsgValue)
-			if marshalingError != nil {
-				config.Log.Error("Error unmarshaling to JSONB:", err)
-			}
-
-			var jsonbMsgValueList dbTypes.JSONB
-			jsonbMsgValueList = append(jsonbMsgValueList, jsonbMsgValue)
-
-			messageValue = jsonbMsgValueList
+	// Retrieving interesting data from the MsgWrapper
+	if extractedValue["MsgValue"] != nil {
+		messageValue = extractedValue["MsgValue"].(map[string]interface{})
+		delete(extractedValue, "MsgValue")
+	} else {
+		messageValue = make(map[string]interface{})
+	}
+	delete(extractedValue, "MsgValue")
+	for key, value := range extractedValue {
+		if key != "@type" {
+			messageValue[key] = value
 		}
 	}
 
-	return msgHandler, cosmosMessage.Type, err, messageValue
+	// Converting the message events to suitable JSONB format
+	messageEvents := toJSONB(log)
+
+	return msgHandler, cosmosMessage.Type, err, messageValue, messageEvents
 }
 
 func toAttributes(attrs []types.Attribute) []txtypes.Attribute {
@@ -480,12 +487,13 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 			// Get the message log that corresponds to the current message
 			var currMessageDBWrapper dbTypes.MessageDBWrapper
 			messageLog := txtypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
-			cosmosMessage, msgType, err, MsgValue := ParseCosmosMessage(message, *messageLog)
+			cosmosMessage, msgType, err, MsgValue, MsgEvents := ParseCosmosMessage(message, *messageLog)
 
 			if err != nil {
 				currMessageType.MessageType = msgType
 				currMessage.MessageType = currMessageType
 				currMessage.MessageValue = MsgValue
+				currMessage.MessageEvents = MsgEvents
 				currMessageDBWrapper.Message = currMessage
 				if err != txtypes.ErrUnknownMessage {
 					// What should we do here? This is an actual error during parsing
@@ -506,6 +514,7 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				currMessageType.MessageType = cosmosMessage.GetType()
 				currMessage.MessageType = currMessageType
 				currMessage.MessageValue = MsgValue
+				currMessage.MessageEvents = MsgEvents
 				currMessageDBWrapper.Message = currMessage
 
 				relevantData := cosmosMessage.ParseRelevantData()

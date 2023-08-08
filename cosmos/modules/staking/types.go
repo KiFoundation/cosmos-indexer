@@ -23,7 +23,7 @@ const (
 
 type WrapperMsgDelegate struct {
 	txModule.Message
-	CosmosMsgDelegate     *stakeTypes.MsgDelegate
+	MsgValue              *stakeTypes.MsgDelegate
 	DelegatorAddress      string
 	AutoWithdrawalReward  *stdTypes.Coin
 	AutoWithdrawalRewards stdTypes.Coins
@@ -31,7 +31,7 @@ type WrapperMsgDelegate struct {
 
 type WrapperMsgUndelegate struct {
 	txModule.Message
-	CosmosMsgUndelegate   *stakeTypes.MsgUndelegate
+	MsgValue              *stakeTypes.MsgUndelegate
 	DelegatorAddress      string
 	AutoWithdrawalReward  *stdTypes.Coin
 	AutoWithdrawalRewards stdTypes.Coins
@@ -39,15 +39,15 @@ type WrapperMsgUndelegate struct {
 
 type WrapperMsgBeginRedelegate struct {
 	txModule.Message
-	CosmosMsgBeginRedelegate *stakeTypes.MsgBeginRedelegate
-	DelegatorAddress         string
-	AutoWithdrawalRewards    stdTypes.Coins
+	MsgValue              *stakeTypes.MsgBeginRedelegate
+	DelegatorAddress      string
+	AutoWithdrawalRewards stdTypes.Coins
 }
 
 // HandleMsg: Handle type checking for MsgFundCommunityPool
 func (sf *WrapperMsgDelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
-	sf.CosmosMsgDelegate = msg.(*stakeTypes.MsgDelegate)
+	sf.MsgValue = msg.(*stakeTypes.MsgDelegate)
 
 	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
@@ -59,7 +59,7 @@ func (sf *WrapperMsgDelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *t
 	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeTransfer, log)
 	if delegatorReceivedCoinsEvt == nil {
 		sf.AutoWithdrawalReward = nil
-		sf.DelegatorAddress = sf.CosmosMsgDelegate.DelegatorAddress
+		sf.DelegatorAddress = sf.MsgValue.DelegatorAddress
 	} else {
 		sf.DelegatorAddress = txModule.GetValueForAttribute("recipient", delegatorReceivedCoinsEvt)
 		coinsReceived := txModule.GetValueForAttribute("amount", delegatorReceivedCoinsEvt)
@@ -81,7 +81,7 @@ func (sf *WrapperMsgDelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *t
 
 func (sf *WrapperMsgUndelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
-	sf.CosmosMsgUndelegate = msg.(*stakeTypes.MsgUndelegate)
+	sf.MsgValue = msg.(*stakeTypes.MsgUndelegate)
 
 	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
@@ -90,11 +90,11 @@ func (sf *WrapperMsgUndelegate) HandleMsg(msgType string, msg stdTypes.Msg, log 
 	}
 
 	// The attribute in the log message that shows you the delegator rewards auto-received
-	sf.DelegatorAddress = sf.CosmosMsgUndelegate.DelegatorAddress
+	sf.DelegatorAddress = sf.MsgValue.DelegatorAddress
 	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
 	if delegatorReceivedCoinsEvt == nil {
 		sf.AutoWithdrawalReward = nil
-		sf.DelegatorAddress = sf.CosmosMsgUndelegate.DelegatorAddress
+		sf.DelegatorAddress = sf.MsgValue.DelegatorAddress
 	} else {
 		var receivers []string
 		var amounts []string
@@ -134,7 +134,7 @@ func (sf *WrapperMsgUndelegate) HandleMsg(msgType string, msg stdTypes.Msg, log 
 // HandleMsg: Handle type checking for MsgFundCommunityPool
 func (sf *WrapperMsgBeginRedelegate) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
 	sf.Type = msgType
-	sf.CosmosMsgBeginRedelegate = msg.(*stakeTypes.MsgBeginRedelegate)
+	sf.MsgValue = msg.(*stakeTypes.MsgBeginRedelegate)
 
 	// Confirm that the action listed in the message log matches the Message type
 	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
@@ -144,7 +144,7 @@ func (sf *WrapperMsgBeginRedelegate) HandleMsg(msgType string, msg stdTypes.Msg,
 
 	// The attribute in the log message that shows you the delegator rewards auto-received
 	delegatorReceivedCoinsEvt := txModule.GetEventWithType(bankTypes.EventTypeCoinReceived, log)
-	sf.DelegatorAddress = sf.CosmosMsgBeginRedelegate.DelegatorAddress
+	sf.DelegatorAddress = sf.MsgValue.DelegatorAddress
 	if delegatorReceivedCoinsEvt == nil {
 		sf.AutoWithdrawalRewards = make(stdTypes.Coins, 0)
 	} else {
@@ -274,4 +274,89 @@ func (sf *WrapperMsgBeginRedelegate) String() string {
 		return fmt.Sprintf("MsgBeginRedelegate: Delegator %s auto-withdrew %s", sf.DelegatorAddress, strings.Join(coinsRecievedStrings, ", "))
 	}
 	return fmt.Sprintf("MsgBeginRedelegate: Delegator %s did not auto-withdrawal rewards", sf.DelegatorAddress)
+}
+
+type WrapperMsgEditValidator struct {
+	txModule.Message
+	MsgValue *stakeTypes.MsgEditValidator
+}
+
+func (sf *WrapperMsgEditValidator) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.MsgValue = msg.(*stakeTypes.MsgEditValidator)
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	return nil
+}
+
+func (sf *WrapperMsgEditValidator) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData []parsingTypes.MessageRelevantInformation
+
+	// Extract data from the MsgEditValidator and populate the relevant fields in MessageRelevantInformation struct.
+	currRelevantData := parsingTypes.MessageRelevantInformation{
+		SenderAddress:        "", // Set to empty string as we don't have this data in MsgEditValidator
+		ReceiverAddress:      sf.MsgValue.ValidatorAddress,
+		AmountSent:           nil, // Set to nil as we don't have this data in MsgEditValidator
+		AmountReceived:       nil, // Set to nil as we don't have this data in MsgEditValidator
+		DenominationSent:     "",  // Set to empty string as we don't have this data in MsgEditValidator
+		DenominationReceived: "",  // Set to empty string as we don't have this data in MsgEditValidator
+	}
+
+	relevantData = append(relevantData, currRelevantData)
+
+	return relevantData
+}
+
+func (sf *WrapperMsgEditValidator) String() string {
+	return fmt.Sprintf("WrapperMsgEditValidator: ValidatorAddress=%s, CommissionRate=%v, MinSelfDelegation=%v",
+		sf.MsgValue.ValidatorAddress, sf.MsgValue.CommissionRate, sf.MsgValue.MinSelfDelegation)
+}
+
+type WrapperMsgCreateValidator struct {
+	txModule.Message
+	MsgValue *stakeTypes.MsgCreateValidator
+}
+
+func (sf *WrapperMsgCreateValidator) HandleMsg(msgType string, msg stdTypes.Msg, log *txModule.LogMessage) error {
+	sf.Type = msgType
+	sf.MsgValue = msg.(*stakeTypes.MsgCreateValidator)
+
+	// Removing types.any field to avoid marshalling errors
+	sf.MsgValue.Pubkey = nil
+
+	// Confirm that the action listed in the message log matches the Message type
+	validLog := txModule.IsMessageActionEquals(sf.GetType(), log)
+	if !validLog {
+		return util.ReturnInvalidLog(msgType, log)
+	}
+
+	return nil
+}
+
+func (sf *WrapperMsgCreateValidator) ParseRelevantData() []parsingTypes.MessageRelevantInformation {
+	var relevantData []parsingTypes.MessageRelevantInformation
+
+	// Extract data from the MsgCreateValidator and populate the relevant fields in MessageRelevantInformation struct.
+	currRelevantData := parsingTypes.MessageRelevantInformation{
+		SenderAddress:        sf.MsgValue.DelegatorAddress,
+		ReceiverAddress:      sf.MsgValue.ValidatorAddress,
+		AmountSent:           nil, // Set to nil as we don't have this data in MsgCreateValidator
+		AmountReceived:       nil, // Set to nil as we don't have this data in MsgCreateValidator
+		DenominationSent:     "",  // Set to empty string as we don't have this data in MsgCreateValidator
+		DenominationReceived: "",  // Set to empty string as we don't have this data in MsgCreateValidator
+	}
+
+	relevantData = append(relevantData, currRelevantData)
+
+	return relevantData
+}
+
+func (sf *WrapperMsgCreateValidator) String() string {
+	return fmt.Sprintf("WrapperMsgCreateValidator: DelegatorAddress=%s, ValidatorAddress=%s, MinSelfDelegation=%v",
+		sf.MsgValue.DelegatorAddress, sf.MsgValue.ValidatorAddress, sf.MsgValue.MinSelfDelegation)
 }
