@@ -79,6 +79,7 @@ type Message struct {
 	MessageType   MessageType
 	MessageIndex  int
 	MessageValue  JSONB `gorm:"type:jsonb"`
+	MessageEvents JSONB `gorm:"type:jsonb"`
 }
 
 const (

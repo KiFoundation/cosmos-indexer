@@ -161,8 +161,22 @@ func ChainSpecificMessageTypeHandlerBootstrap(chainID string) {
 	}
 }
 
+// Convert a struct into a map[string]interface{}
+func toJSONB(input interface{}) dbTypes.JSONB {
+	result := make(dbTypes.JSONB)
+	v := reflect.ValueOf(input)
+	if v.Kind() == reflect.Struct {
+		typeOfT := v.Type()
+		for i := 0; i < v.NumField(); i++ {
+			field := v.Field(i)
+			result[typeOfT.Field(i).Name] = field.Interface()
+		}
+	}
+	return result
+}
+
 // ParseCosmosMessageJSON - Parse a SINGLE Cosmos Message into the appropriate type.
-func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.CosmosMessage, string, error, dbTypes.JSONB) {
+func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.CosmosMessage, string, error, dbTypes.JSONB, dbTypes.JSONB) {
 	var ok bool
 	var err error
 	var msgHandler txtypes.CosmosMessage
@@ -203,7 +217,6 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 
 		// Fetching handler parsed data when there is an appropriate handler for the message type
 		jsonMsgValue, marshalingError = json.Marshal(msgHandler)
-
 	}
 
 	if marshalingError != nil {
@@ -231,7 +244,10 @@ func ParseCosmosMessage(message types.Msg, log txtypes.LogMessage) (txtypes.Cosm
 		}
 	}
 
-	return msgHandler, cosmosMessage.Type, err, messageValue
+	// Converting the message events to suitable JSONB format
+	messageEvents := toJSONB(log)
+
+	return msgHandler, cosmosMessage.Type, err, messageValue, messageEvents
 }
 
 func toAttributes(attrs []types.Attribute) []txtypes.Attribute {
@@ -471,12 +487,13 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 			// Get the message log that corresponds to the current message
 			var currMessageDBWrapper dbTypes.MessageDBWrapper
 			messageLog := txtypes.GetMessageLogForIndex(tx.TxResponse.Log, messageIndex)
-			cosmosMessage, msgType, err, MsgValue := ParseCosmosMessage(message, *messageLog)
+			cosmosMessage, msgType, err, MsgValue, MsgEvents := ParseCosmosMessage(message, *messageLog)
 
 			if err != nil {
 				currMessageType.MessageType = msgType
 				currMessage.MessageType = currMessageType
 				currMessage.MessageValue = MsgValue
+				currMessage.MessageEvents = MsgEvents
 				currMessageDBWrapper.Message = currMessage
 				if err != txtypes.ErrUnknownMessage {
 					// What should we do here? This is an actual error during parsing
@@ -497,6 +514,7 @@ func ProcessTx(db *gorm.DB, tx txtypes.MergedTx) (txDBWapper dbTypes.TxDBWrapper
 				currMessageType.MessageType = cosmosMessage.GetType()
 				currMessage.MessageType = currMessageType
 				currMessage.MessageValue = MsgValue
+				currMessage.MessageEvents = MsgEvents
 				currMessageDBWrapper.Message = currMessage
 
 				relevantData := cosmosMessage.ParseRelevantData()
