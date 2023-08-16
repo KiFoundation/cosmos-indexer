@@ -1,8 +1,8 @@
 #App configuration values
 [base]
-start-block = 16248999 # start indexing at beginning of the blockchain, -1 to resume from highest block indexed
-end-block = -1 # stop indexing at this block, -1 to never stop indexing
-reindex = true # if true, this will re-attempt to index blocks we have already indexed (defaults to false)
+start-block = 16323001 # start indexing at beginning of the blockchain, -1 to resume from highest block indexed
+end-block = 16323003 # stop indexing at this block, -1 to never stop indexing
+reindex = false # if true, this will re-attempt to index blocks we have already indexed (defaults to false)
 prevent-reattempts = false # if true, this will prevent us from re-attempting to index failed blocks (defaults to false)
 throttling = 0.2
 index-chain = true #If false, we won't attempt to index the chain
@@ -27,4 +27,4 @@ port = "5432"
 database = "postgres"
 user = "taxuser"
 password = "password"
-log-level = "error"
+log-level = "error"c
