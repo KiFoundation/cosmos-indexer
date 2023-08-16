@@ -1,4 +1,5 @@
-#config.toml
+config.toml
+config-mainnet.toml
 config.osmosis.toml
 cosmos-exporter
 cosmos-exporter-backend
