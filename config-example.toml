@@ -1,0 +1,30 @@
+#App configuration values
+[base]
+start-block = 11068880 # start indexing at beginning of the blockchain, -1 to resume from highest block indexed
+end-block = -1 # stop indexing at this block, -1 to never stop indexing
+reindex = true # if true, this will re-attempt to index blocks we have already indexed (defaults to false)
+prevent-reattempts = false # if true, this will prevent us from re-attempting to index failed blocks (defaults to false)
+throttling = 1.0
+index-chain = true #If false, we won't attempt to index the chain
+exit-when-caught-up = false #mainly used for Osmosis rewards indexing
+index-block-events = false #index block events for the particular chain
+index-epoch-events = false
+dry = false # if true, indexing will occur but data will not be written to the database.
+api = "http://api-challenge.blockchain.ki" # node api endpoint
+rpc-workers = 1
+
+#Lens config options
+[lens]
+rpc = "http://rpc-challenge.blockchain.ki"
+account-prefix = "tki"
+chain-id = "kichain-t-4"
+chain-name = "kid"
+
+#postgresql
+[database]
+host = "localhost"
+port = "5432"
+database = "database"
+user = "user"
+password = "password"
+log-level = "error"
